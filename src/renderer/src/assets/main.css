@@ -1,0 +1,151 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-soft: var(--surface-soft);
+  --color-surface-mute: var(--surface-mute);
+  --color-line: var(--line);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-foreground-secondary: var(--foreground-secondary);
+  --color-foreground-muted: var(--foreground-muted);
+
+  --color-panel: var(--panel);
+  --color-panel-hover: var(--panel-hover);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+}
+
+:root {
+  color-scheme: light;
+
+  --background: #ffffff;
+  --surface: #ffffff;
+  --surface-soft: #fafafa;
+  --surface-mute: #f4f4f5;
+  --line: #e5e5e7;
+
+  --foreground: #27272a;
+  --foreground-secondary: #52525b;
+  --foreground-muted: #71717a;
+
+  --panel: #ffffff;
+  --panel-hover: #f4f4f5;
+
+  --primary: #4f46e5;
+  --primary-foreground: #ffffff;
+
+  --success: #15803d;
+  --warning: #a16207;
+  --danger: #dc2626;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: #101113;
+  --surface: #17181b;
+  --surface-soft: #1c1d21;
+  --surface-mute: #26272c;
+  --line: #303136;
+
+  --foreground: #f3f4f6;
+  --foreground-secondary: #a1a1aa;
+  --foreground-muted: #71717a;
+
+  --panel: #1c1d21;
+  --panel-hover: #26272c;
+
+  --primary: #8b9cfb;
+  --primary-foreground: #101113;
+
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #f87171;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  background: var(--background);
+  color: var(--foreground);
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    'Fira Sans',
+    'Droid Sans',
+    'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Thin, subtle scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
+
+/* Search dialog entrance */
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

@@ -9,6 +9,8 @@
         "@electron-toolkit/utils": "^4.0.0",
         "@hugeicons/core-free-icons": "^4.4.0",
         "@hugeicons/solid-js": "^1.0.0",
+        "@solid-primitives/event-bus": "^1.1.4",
+        "@solid-primitives/event-listener": "^2.4.6",
         "@solidjs/router": "^1.0.1",
         "better-sqlite3": "^13.0.3",
         "drizzle-orm": "^0.45.4",
@@ -265,6 +267,12 @@
     "@rolldown/pluginutils": ["@rolldown/pluginutils@1.0.1", "", {}, "sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw=="],
 
     "@sindresorhus/is": ["@sindresorhus/is@4.6.0", "", {}, "sha512-t09vSN3MdfsyCHoFcTRCH/iUtG7OJ0CsjzB8cjAmKc/va/kIgeDI/TxsigdncE/4be734m0cvIYwNaV4i2XqAw=="],
+
+    "@solid-primitives/event-bus": ["@solid-primitives/event-bus@1.1.4", "", { "dependencies": { "@solid-primitives/utils": "^6.4.1" }, "peerDependencies": { "solid-js": "^1.6.12" } }, "sha512-5aYvB/kLiWhL6TmpH/QvFRjwIArknEEHDzxA7hvnJZ+/BFixGeB7yqWEJORYeig7kOzC+XqUbjDmpJhHriP4EA=="],
+
+    "@solid-primitives/event-listener": ["@solid-primitives/event-listener@2.4.6", "", { "dependencies": { "@solid-primitives/utils": "^6.4.1" }, "peerDependencies": { "solid-js": "^1.6.12" } }, "sha512-5I0YJcTVYIWoMmgBSROBZGcz+ymhew/pGTg2dHW74BUjFKsV8Li4bOZYl0YAGP4mHw5o4UBd9/BEesqBci3wxw=="],
+
+    "@solid-primitives/utils": ["@solid-primitives/utils@6.4.1", "", { "peerDependencies": { "solid-js": "^1.6.12" } }, "sha512-ISSB5QX1qP2ynrheIpYwc4oKR5Ny4siNuUyf1qZniy+Il+p/PtDB0QK1Dnle8noiHpwRD3gpPdubOC3qI/Zamg=="],
 
     "@solidjs/router": ["@solidjs/router@1.0.1", "", { "peerDependencies": { "solid-js": "^1.8.6" } }, "sha512-JxY0+Y8RMZZjk3pATfY5f9ANbFa26+aOf3X7KtpRC9yCuy7f2UWDL8ukx6pVot2OYOJyUfTH7LYG2bbMPZ3WDw=="],
 

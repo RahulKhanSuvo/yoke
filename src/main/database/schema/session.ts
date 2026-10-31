@@ -1,7 +1,7 @@
 import { sqliteTable, text, integer, index, real } from 'drizzle-orm/sqlite-core'
 
 import { projects } from './project'
-import { createId } from '../../utility/databaseUtility'
+import { createId } from '../../utility/commonUit'
 
 export const sessions = sqliteTable(
   'sessions',

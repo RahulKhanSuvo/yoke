@@ -1,7 +1,7 @@
 import { sqliteTable, text, integer, index, real } from 'drizzle-orm/sqlite-core'
 
 import { projects } from './project'
-import { createId } from '../../utility/commonUit'
+import { createId, Timestamps } from '../../utility/commonUit'
 
 export const sessions = sqliteTable(
   'sessions',
@@ -28,15 +28,8 @@ export const sessions = sqliteTable(
     time_busy: integer(), // Timestamp when agent started working
     time_idle: integer(), // Timestamp when agent finished
     idle_outcome: text(), // "complete", "error", etc.
-    time_created: integer(),
     time_archived: integer(),
-    createdAt: integer('created_at')
-      .notNull()
-      .$defaultFn(() => Date.now()),
-
-    updatedAt: integer('updated_at')
-      .notNull()
-      .$defaultFn(() => Date.now())
+    ...Timestamps
   },
   (table) => [index('sessions_project_id_idx').on(table.projectId)]
 )

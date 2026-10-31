@@ -1,4 +1,4 @@
-import { createResource, createSignal, createUniqueId, For, Show } from 'solid-js'
+import { createEffect, createResource, createSignal, createUniqueId, For, Show } from 'solid-js'
 import { HugeiconsIcon } from '@hugeicons/solid-js'
 import {
   Delete02Icon,
@@ -21,9 +21,12 @@ export const AppSidebar = () => {
   const id = createUniqueId()
 
   const [projects, { refetch }] = createResource(async () => {
-    // The preload bridge is absent outside Electron (e.g. the browser preview).
     if (!window.api) return []
     return window.api.projects.list()
+  })
+
+  createEffect(() => {
+    console.log('Projects changed:', projects())
   })
   const [activeProjectId, setActiveProjectId] = createSignal<string>()
   const [busy, setBusy] = createSignal(false)

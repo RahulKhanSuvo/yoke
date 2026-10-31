@@ -15,6 +15,13 @@
       "when": 1793460752266,
       "tag": "0001_amusing_the_anarchist",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793468358508,
+      "tag": "0002_session_timestamps",
+      "breakpoints": true
     }
   ]
 }

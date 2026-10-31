@@ -27,6 +27,8 @@
     "@electron-toolkit/utils": "^4.0.0",
     "@hugeicons/core-free-icons": "^4.4.0",
     "@hugeicons/solid-js": "^1.0.0",
+    "@solid-primitives/event-bus": "^1.1.4",
+    "@solid-primitives/event-listener": "^2.4.6",
     "@solidjs/router": "^1.0.1",
     "better-sqlite3": "^13.0.3",
     "drizzle-orm": "^0.45.4",

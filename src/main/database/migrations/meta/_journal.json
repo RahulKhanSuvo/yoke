@@ -8,6 +8,13 @@
       "when": 1793395500852,
       "tag": "0000_soft_silvermane",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1793460752266,
+      "tag": "0001_amusing_the_anarchist",
+      "breakpoints": true
     }
   ]
 }

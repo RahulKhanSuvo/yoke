@@ -1,5 +1,4 @@
 import { ipcMain } from 'electron'
-import { randomUUID } from 'node:crypto'
 
 import { credentialService } from '../ai/credential.service'
 import { PROVIDERS, type ProviderId } from '../ai/catalog'

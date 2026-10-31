@@ -1,5 +1,5 @@
 import { BrowserWindow, dialog, ipcMain } from 'electron'
-import { createProject } from '../services/project.service'
+import { createProject, deleteProject } from '../services/project.service'
 
 export function registerProjectIpc(): void {
   ipcMain.handle('projects:select-folder', async (event) => {
@@ -19,5 +19,8 @@ export function registerProjectIpc(): void {
     }
 
     return createProject(result.filePaths[0])
+  })
+  ipcMain.handle('projects:delete', async (_, id: string) => {
+    return deleteProject(id)
   })
 }

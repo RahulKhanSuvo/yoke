@@ -32,9 +32,7 @@ export async function createProject(rootPath: string): Promise<Project> {
     where: eq(projects.rootPath, resolvedPath)
   })
 
-  if (existingProject) {
-    throw new Error('This project has already been added')
-  }
+  if (existingProject) return existingProject
 
   // 5. Generate the name from the folder name
   const name = path.basename(resolvedPath)
@@ -57,7 +55,7 @@ export async function createProject(rootPath: string): Promise<Project> {
 
 export async function getProjects(): Promise<Project[]> {
   return db.query.projects.findMany({
-    orderBy: (projects, { desc }) => [desc(projects.updatedAt)]
+    orderBy: (projects, { desc }) => [desc(projects.time_created)]
   })
 }
 

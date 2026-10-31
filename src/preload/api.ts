@@ -1,10 +1,7 @@
-import { ipcRenderer } from 'electron'
+import { projectApi } from './api/project.api'
+import { sessionApi } from './api/session.api'
+
 export const api = {
-  projects: {
-    list: () => ipcRenderer.invoke('projects:list'),
-
-    selectFolder: () => ipcRenderer.invoke('projects:select-folder'),
-
-    delete: (id: string) => ipcRenderer.invoke('projects:delete', id)
-  }
+  projects: projectApi,
+  sessions: sessionApi
 }

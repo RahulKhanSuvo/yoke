@@ -22,7 +22,7 @@ export async function getProjectSessions(
 ): Promise<Array<typeof sessions.$inferSelect>> {
   return db.query.sessions.findMany({
     where: eq(sessions.projectId, projectId),
-    orderBy: (sessions, { desc }) => [desc(sessions.updatedAt)]
+    orderBy: (sessions, { desc }) => [desc(sessions.time_updated)]
   })
 }
 

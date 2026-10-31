@@ -2,11 +2,15 @@ import { eq } from 'drizzle-orm'
 import { db } from '../database'
 import { sessions } from '../database/schema'
 
-export async function createSession(projectId: string): Promise<typeof sessions.$inferSelect> {
+export async function createSession(
+  projectId: string,
+  directory: string
+): Promise<typeof sessions.$inferSelect> {
   const [session] = await db
     .insert(sessions)
     .values({
-      projectId
+      projectId,
+      directory
     })
     .returning()
 
@@ -20,4 +24,11 @@ export async function getProjectSessions(
     where: eq(sessions.projectId, projectId),
     orderBy: (sessions, { desc }) => [desc(sessions.updatedAt)]
   })
+}
+
+export async function deleteSection(id: string) {
+  if (typeof id !== 'string' || !id.trim()) {
+    throw new Error('Invalid project ID')
+  }
+  await db.delete(sessions).where(eq(sessions.id, id))
 }

@@ -23,6 +23,9 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.94",
+    "@ai-sdk/google": "^4.0.109",
+    "@ai-sdk/openai": "^4.0.106",
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "@hugeicons/core-free-icons": "^4.4.0",
@@ -30,9 +33,13 @@
     "@solid-primitives/event-bus": "^1.1.4",
     "@solid-primitives/event-listener": "^2.4.6",
     "@solidjs/router": "^1.0.1",
+    "ai": "^7.0.159",
     "better-sqlite3": "^13.0.3",
     "drizzle-orm": "^0.45.4",
-    "electron-updater": "^6.8.9"
+    "electron-updater": "^6.8.9",
+    "keytar": "^7.9.0",
+    "uuid": "^14.0.3",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.1",

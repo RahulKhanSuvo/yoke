@@ -1,6 +1,8 @@
-import { createUniqueId } from 'solid-js'
+import { createResource, createSignal, createUniqueId, For, Show } from 'solid-js'
 import { HugeiconsIcon } from '@hugeicons/solid-js'
 import {
+  Delete02Icon,
+  Folder01Icon,
   FolderAddIcon,
   PanelLeftIcon,
   SearchIcon as SearchIconData,
@@ -17,6 +19,37 @@ export const AppSidebar = () => {
   const sidebar = useSidebar()
   // The sidebar renders twice while peeking (docked column + overlay), so each instance needs its own id.
   const id = createUniqueId()
+
+  const [projects, { refetch }] = createResource(async () => {
+    // The preload bridge is absent outside Electron (e.g. the browser preview).
+    if (!window.api) return []
+    return window.api.projects.list()
+  })
+  const [activeProjectId, setActiveProjectId] = createSignal<string>()
+  const [busy, setBusy] = createSignal(false)
+
+  const addProject = async () => {
+    setBusy(true)
+
+    try {
+      const project = await window.api.projects.selectFolder()
+
+      if (project) {
+        setActiveProjectId(project.id)
+        await refetch()
+      }
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const removeProject = async (projectId: string) => {
+    await window.api.projects.delete(projectId)
+
+    if (activeProjectId() === projectId) setActiveProjectId(undefined)
+
+    await refetch()
+  }
 
   return (
     <aside id={id} class="flex h-full w-full flex-col overflow-hidden">
@@ -46,34 +79,69 @@ export const AppSidebar = () => {
 
       <div class="mt-4 flex shrink-0 items-center justify-between px-3 pb-1">
         <span class="text-[13px] font-medium tracking-wide text-neutral-500">Projects</span>
-        <IconButton label="Add project" class="p-1">
+        <IconButton
+          label="Add project"
+          class="p-1"
+          disabled={busy()}
+          onClick={() => void addProject()}
+        >
           <HugeiconsIcon icon={FolderAddIcon} size={15} class="text-neutral-600" />
         </IconButton>
       </div>
 
       <div class="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
-        {/*{projects.length === 0 ? (
-        <div class="mx-1 mt-1 rounded-md border border-dashed border-neutral-200 px-3 py-2 text-center">
-          <p class="text-[12px] text-neutral-500">No projects yet</p>
-        </div>
-      ) : (
+        <Show when={projects.error}>
+          <div class="mx-1 mt-1 rounded-md border border-dashed border-red-200 px-3 py-2 text-center">
+            <p class="text-[12px] text-red-500">Couldn't load projects</p>
+          </div>
+        </Show>
+
+        <Show when={projects.loading && !projects()}>
+          <p class="mx-1 mt-1 px-2 text-[12px] text-neutral-400">Loading…</p>
+        </Show>
+
+        <Show when={projects()?.length === 0}>
+          <div class="mx-1 mt-1 rounded-md border border-dashed border-neutral-200 px-3 py-2 text-center">
+            <p class="text-[12px] text-neutral-500">No projects yet</p>
+          </div>
+        </Show>
+
         <div class="flex flex-col gap-0.5">
-          {projects.map((project) => (
-            <ProjectItem
-              key={project.id}
-              project={project}
-              sessions={sessions.filter((s) => s.projectId === project.id)}
-              expanded={expandedProjectIds.has(project.id)}
-              activeSessionId={activeSessionId}
-              onToggle={() => onToggleProject(project.id)}
-              onNewSession={() => onNewSession(project.id)}
-              onSelectSession={onSelectSession}
-              onClose={() => onCloseProject(project.id)}
-              onRemove={() => onRemoveProject(project.id)}
-            />
-          ))}
+          <For each={projects()}>
+            {(project) => (
+              <div
+                class="group flex items-center rounded-md transition-colors"
+                classList={{
+                  'bg-neutral-200/60': activeProjectId() === project.id,
+                  'hover:bg-neutral-100': activeProjectId() !== project.id
+                }}
+              >
+                <button
+                  type="button"
+                  class="flex min-w-0 flex-1 items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-[13px]"
+                  classList={{
+                    'text-neutral-900': activeProjectId() === project.id,
+                    'text-neutral-600 group-hover:text-neutral-900':
+                      activeProjectId() !== project.id
+                  }}
+                  title={project.rootPath}
+                  onClick={() => setActiveProjectId(project.id)}
+                >
+                  <HugeiconsIcon icon={Folder01Icon} size={15} class="shrink-0 text-neutral-400" />
+                  <span class="truncate">{project.name}</span>
+                </button>
+
+                <IconButton
+                  label={`Remove ${project.name}`}
+                  class="mr-1 p-1 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                  onClick={() => void removeProject(project.id)}
+                >
+                  <HugeiconsIcon icon={Delete02Icon} size={13} />
+                </IconButton>
+              </div>
+            )}
+          </For>
         </div>
-      )}*/}
       </div>
 
       <div class="shrink-0 border-t border-neutral-200/70 p-2">

@@ -41,20 +41,28 @@ export function migrate(sqlite: Database.Database): void {
       .map((row) => (row as { hash: string }).hash)
   )
 
-  for (const migration of migrations) {
-    if (applied.has(migration.tag)) continue
+  // Table rebuilds drop and recreate tables. Foreign keys have to be disabled
+  // outside of the transaction for those rebuilds to work on non-empty databases.
+  sqlite.pragma('foreign_keys = OFF')
 
-    const statements = migration.sql
-      .split('--> statement-breakpoint')
-      .map((statement) => statement.trim())
-      .filter(Boolean)
+  try {
+    for (const migration of migrations) {
+      if (applied.has(migration.tag)) continue
 
-    sqlite.transaction(() => {
-      for (const statement of statements) sqlite.exec(statement)
+      const statements = migration.sql
+        .split('--> statement-breakpoint')
+        .map((statement) => statement.trim())
+        .filter(Boolean)
 
-      sqlite
-        .prepare('INSERT INTO __drizzle_migrations (hash, created_at) VALUES (?, ?)')
-        .run(migration.tag, Date.now())
-    })()
+      sqlite.transaction(() => {
+        for (const statement of statements) sqlite.exec(statement)
+
+        sqlite
+          .prepare('INSERT INTO __drizzle_migrations (hash, created_at) VALUES (?, ?)')
+          .run(migration.tag, Date.now())
+      })()
+    }
+  } finally {
+    sqlite.pragma('foreign_keys = ON')
   }
 }

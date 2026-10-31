@@ -55,6 +55,11 @@ export async function createProject(rootPath: string): Promise<Project> {
 
 export async function getProjects(): Promise<Project[]> {
   return db.query.projects.findMany({
+    with: {
+      sessions: {
+        orderBy: (sessions, { desc }) => [desc(sessions.time_updated)]
+      }
+    },
     orderBy: (projects, { desc }) => [desc(projects.time_created)]
   })
 }

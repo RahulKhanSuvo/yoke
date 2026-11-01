@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@plugin "tailwindcss-animate";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -19,9 +20,44 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
 
-  --color-success: var(--success);
-  --color-warning: var(--warning);
   --color-danger: var(--danger);
+
+  /* solid-ui / shadcn-compatible aliases mapped onto the app palette */
+  --color-border: var(--line);
+  --color-input: var(--line);
+  --color-ring: var(--primary);
+
+  --color-card: var(--panel);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--panel);
+  --color-popover-foreground: var(--foreground);
+
+  --color-secondary: var(--surface-mute);
+  --color-secondary-foreground: var(--foreground);
+  --color-muted: var(--surface-mute);
+  --color-muted-foreground: var(--foreground-muted);
+  --color-accent: var(--panel-hover);
+  --color-accent-foreground: var(--foreground);
+
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: var(--background);
+
+  /* solid-ui treats these as soft surfaces with a strong tinted foreground */
+  --color-info: var(--info-soft);
+  --color-info-foreground: var(--info);
+  --color-success: var(--success-soft);
+  --color-success-foreground: var(--success);
+  --color-warning: var(--warning-soft);
+  --color-warning-foreground: var(--warning);
+  --color-error: var(--error-soft);
+  --color-error-foreground: var(--danger);
+
+  /* solid-ui registry animations */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-content-show: content-show 0.2s ease-out;
+  --animate-content-hide: content-hide 0.2s ease-out;
+  --animate-caret-blink: caret-blink 1.25s ease-out infinite;
 }
 
 :root {
@@ -46,6 +82,12 @@
   --success: #15803d;
   --warning: #a16207;
   --danger: #dc2626;
+
+  --info: #0ea5e9;
+  --info-soft: #e0f2fe;
+  --success-soft: #dcfce7;
+  --warning-soft: #fef3c7;
+  --error-soft: #fee2e2;
 }
 
 .dark {
@@ -70,6 +112,21 @@
   --success: #4ade80;
   --warning: #fbbf24;
   --danger: #f87171;
+
+  --info: #38bdf8;
+  --info-soft: #082f49;
+  --success-soft: #052e16;
+  --warning-soft: #422006;
+  --error-soft: #450a0a;
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop {
+    border-color: var(--color-border);
+  }
 }
 
 *,
@@ -104,6 +161,58 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--kb-accordion-content-height);
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--kb-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+@keyframes content-show {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes content-hide {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes caret-blink {
+  0%,
+  70%,
+  100% {
+    opacity: 1;
+  }
+  20%,
+  50% {
+    opacity: 0;
+  }
 }
 
 /* Thin, subtle scrollbars */

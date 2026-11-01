@@ -1,8 +1,6 @@
-import { createEffect, createResource, createSignal, createUniqueId, For, Show } from 'solid-js'
+import { createEffect, createResource, createSignal, createUniqueId, Show } from 'solid-js'
 import { HugeiconsIcon } from '@hugeicons/solid-js'
 import {
-  Delete02Icon,
-  Folder01Icon,
   FolderAddIcon,
   PanelLeftIcon,
   SearchIcon as SearchIconData,
@@ -11,6 +9,7 @@ import {
 import DashboardSquareAddIcon from '@hugeicons/core-free-icons/DashboardSquareAddIcon'
 import { IconButton } from '@renderer/components/ui/IconButton'
 import { NavItem } from '@renderer/components/ui/NavItem'
+import { ProjectTree } from '@renderer/features/projects/ProjectTree'
 import { useSidebar } from '../context/sidebar-state'
 
 const SEARCH_SHORTCUT = /Mac/i.test(navigator.userAgent) ? '⌘K' : 'Ctrl K'
@@ -29,6 +28,7 @@ export const AppSidebar = () => {
     console.log('Projects changed:', projects())
   })
   const [activeProjectId, setActiveProjectId] = createSignal<string>()
+  const [activeSessionId, setActiveSessionId] = createSignal<string>()
   const [busy, setBusy] = createSignal(false)
 
   const addProject = async () => {
@@ -39,6 +39,7 @@ export const AppSidebar = () => {
 
       if (project) {
         setActiveProjectId(project.id)
+        setActiveSessionId(undefined)
         await refetch()
       }
     } finally {
@@ -49,7 +50,18 @@ export const AppSidebar = () => {
   const removeProject = async (projectId: string) => {
     await window.api.projects.delete(projectId)
 
-    if (activeProjectId() === projectId) setActiveProjectId(undefined)
+    if (activeProjectId() === projectId) {
+      setActiveProjectId(undefined)
+      setActiveSessionId(undefined)
+    }
+
+    await refetch()
+  }
+
+  const removeSession = async (sessionId: string) => {
+    await window.api.sessions.delete(sessionId)
+
+    if (activeSessionId() === sessionId) setActiveSessionId(undefined)
 
     await refetch()
   }
@@ -109,42 +121,22 @@ export const AppSidebar = () => {
           </div>
         </Show>
 
-        <div class="flex flex-col gap-0.5">
-          <For each={projects()}>
-            {(project) => (
-              <div
-                class="group flex items-center rounded-md transition-colors"
-                classList={{
-                  'bg-neutral-200/60': activeProjectId() === project.id,
-                  'hover:bg-neutral-100': activeProjectId() !== project.id
-                }}
-              >
-                <button
-                  type="button"
-                  class="flex min-w-0 flex-1 items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-[13px]"
-                  classList={{
-                    'text-neutral-900': activeProjectId() === project.id,
-                    'text-neutral-600 group-hover:text-neutral-900':
-                      activeProjectId() !== project.id
-                  }}
-                  title={project.rootPath}
-                  onClick={() => setActiveProjectId(project.id)}
-                >
-                  <HugeiconsIcon icon={Folder01Icon} size={15} class="shrink-0 text-neutral-400" />
-                  <span class="truncate">{project.name}</span>
-                </button>
-
-                <IconButton
-                  label={`Remove ${project.name}`}
-                  class="mr-1 p-1 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
-                  onClick={() => void removeProject(project.id)}
-                >
-                  <HugeiconsIcon icon={Delete02Icon} size={13} />
-                </IconButton>
-              </div>
-            )}
-          </For>
-        </div>
+        <ProjectTree
+          projects={projects() ?? []}
+          activeProjectId={activeProjectId()}
+          activeSessionId={activeSessionId()}
+          onRefresh={refetch}
+          onSelectProject={(project) => {
+            setActiveProjectId(project.id)
+            setActiveSessionId(undefined)
+          }}
+          onSelectSession={(session) => {
+            setActiveProjectId(session.projectId)
+            setActiveSessionId(session.id)
+          }}
+          onDeleteSession={(session) => void removeSession(session.id)}
+          onRemoveProject={(project) => void removeProject(project.id)}
+        />
       </div>
 
       <div class="shrink-0 border-t border-neutral-200/70 p-2">

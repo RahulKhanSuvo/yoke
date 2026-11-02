@@ -39,7 +39,17 @@ export function createEditTool(directory: string) {
       newString: z.string().describe('Replacement text'),
       replaceAll: z.boolean().optional().describe('Replace every occurrence')
     }),
-    execute: async ({ path, oldString, newString, replaceAll }) => {
+    execute: async ({
+      path,
+      oldString,
+      newString,
+      replaceAll
+    }: {
+      path: string
+      oldString: string
+      newString: string
+      replaceAll?: boolean
+    }) => {
       const full = resolveInside(directory, path)
       const text = await readFile(full, 'utf8')
       const occurrences = text.split(oldString).length - 1

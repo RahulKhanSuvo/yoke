@@ -1,16 +1,17 @@
-import { streamText } from 'ai'
+import { streamText, type ModelMessage } from 'ai'
 
 import { resolveModel } from './model-resolver'
-import type { ProviderId } from './catalog'
+import type { ProviderId } from '../../shared/ai'
 
-interface GenerateOptions {
+interface StreamChatOptions {
   providerId: ProviderId
   modelId: string
-  prompt: string
+  messages: ModelMessage[]
 }
 
-export async function generateText(
-  options: GenerateOptions,
+/** Streams an assistant reply for the given conversation history. */
+export async function streamChat(
+  options: StreamChatOptions,
   onChunk: (text: string) => void,
   signal?: AbortSignal
 ) {
@@ -18,7 +19,7 @@ export async function generateText(
 
   const result = streamText({
     model,
-    prompt: options.prompt,
+    messages: options.messages,
     abortSignal: signal
   })
 

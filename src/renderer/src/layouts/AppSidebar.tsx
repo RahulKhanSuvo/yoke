@@ -1,4 +1,5 @@
-import { createEffect, createResource, createSignal, createUniqueId, Show } from 'solid-js'
+import { createResource, createSignal, createUniqueId, onCleanup, onMount, Show } from 'solid-js'
+import { useNavigate } from '@solidjs/router'
 import { HugeiconsIcon } from '@hugeicons/solid-js'
 import {
   FolderAddIcon,
@@ -10,12 +11,17 @@ import DashboardSquareAddIcon from '@hugeicons/core-free-icons/DashboardSquareAd
 import { IconButton } from '@renderer/components/ui/IconButton'
 import { NavItem } from '@renderer/components/ui/NavItem'
 import { ProjectTree } from '@renderer/features/projects/ProjectTree'
+import {
+  notifyProjectsChanged,
+  onProjectsChanged
+} from '@renderer/features/projects/project-events'
 import { useSidebar } from '../context/sidebar-state'
 
 const SEARCH_SHORTCUT = /Mac/i.test(navigator.userAgent) ? '⌘K' : 'Ctrl K'
 
 export const AppSidebar = () => {
   const sidebar = useSidebar()
+  const navigate = useNavigate()
   // The sidebar renders twice while peeking (docked column + overlay), so each instance needs its own id.
   const id = createUniqueId()
 
@@ -24,9 +30,12 @@ export const AppSidebar = () => {
     return window.api.projects.list()
   })
 
-  createEffect(() => {
-    console.log('Projects changed:', projects())
+  // Other screens (home, chat) can start sessions too, so follow their updates.
+  onMount(() => {
+    const dispose = onProjectsChanged(() => void refetch())
+    onCleanup(dispose)
   })
+
   const [activeProjectId, setActiveProjectId] = createSignal<string>()
   const [activeSessionId, setActiveSessionId] = createSignal<string>()
   const [busy, setBusy] = createSignal(false)
@@ -41,6 +50,7 @@ export const AppSidebar = () => {
         setActiveProjectId(project.id)
         setActiveSessionId(undefined)
         await refetch()
+        notifyProjectsChanged()
       }
     } finally {
       setBusy(false)
@@ -53,17 +63,23 @@ export const AppSidebar = () => {
     if (activeProjectId() === projectId) {
       setActiveProjectId(undefined)
       setActiveSessionId(undefined)
+      navigate('/')
     }
 
     await refetch()
+    notifyProjectsChanged()
   }
 
   const removeSession = async (sessionId: string) => {
     await window.api.sessions.delete(sessionId)
 
-    if (activeSessionId() === sessionId) setActiveSessionId(undefined)
+    if (activeSessionId() === sessionId) {
+      setActiveSessionId(undefined)
+      navigate('/')
+    }
 
     await refetch()
+    notifyProjectsChanged()
   }
 
   return (
@@ -72,6 +88,10 @@ export const AppSidebar = () => {
         <NavItem
           icon={<HugeiconsIcon icon={DashboardSquareAddIcon} size={15} class="text-neutral-400" />}
           label="Home"
+          onClick={() => {
+            setActiveSessionId(undefined)
+            navigate('/')
+          }}
         />
         <IconButton
           label={sidebar.collapsed() ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -133,6 +153,7 @@ export const AppSidebar = () => {
           onSelectSession={(session) => {
             setActiveProjectId(session.projectId)
             setActiveSessionId(session.id)
+            navigate(`/sessions/${session.id}`)
           }}
           onDeleteSession={(session) => void removeSession(session.id)}
           onRemoveProject={(project) => void removeProject(project.id)}
@@ -143,6 +164,7 @@ export const AppSidebar = () => {
         <NavItem
           icon={<HugeiconsIcon icon={SettingsIconData} size={15} class="text-neutral-400" />}
           label="Settings"
+          onClick={() => navigate('/settings')}
         />
       </div>
     </aside>

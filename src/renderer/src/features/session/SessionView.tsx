@@ -15,6 +15,7 @@ import { ChatMessageRow, type ChatMessageView } from '@renderer/features/chat/Ch
 import { ProjectMeta } from '@renderer/features/chat/ProjectMeta'
 import { aiStore } from '@renderer/features/ai/ai-store'
 import { notifyProjectsChanged } from '@renderer/features/projects/project-events'
+import { closeSessionTab, openSessionTab } from '@renderer/features/session/session-tabs'
 import type { MessagePart } from '@shared/ai'
 
 export default function SessionView(): JSX.Element {
@@ -85,6 +86,33 @@ export default function SessionView(): JSX.Element {
       scrollArea?.scrollTo({ top: scrollArea.scrollHeight })
     })
   }
+
+  // Opening a session from anywhere (tree, home, URL) adds it to the sidebar tabs.
+  createEffect(() => {
+    const value = session()
+
+    if (!value) return
+
+    openSessionTab({
+      id: value.id,
+      title: value.title,
+      projectId: value.projectId,
+      projectName: value.project.name,
+      directory: value.directory
+    })
+  })
+
+  // A direct link to a deleted session should not leave a dead tab behind.
+  createEffect(() => {
+    const id = sessionId()
+
+    if (!id || session.loading) return
+
+    if (session() === null) {
+      closeSessionTab(id)
+      navigate('/')
+    }
+  })
 
   // Mirror the persisted transcript into local state whenever it is (re)loaded.
   createEffect(() => {

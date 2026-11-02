@@ -1,5 +1,5 @@
 import { createResource, createSignal, createUniqueId, onCleanup, onMount, Show } from 'solid-js'
-import { useNavigate } from '@solidjs/router'
+import { useLocation, useNavigate } from '@solidjs/router'
 import { HugeiconsIcon } from '@hugeicons/solid-js'
 import {
   FolderAddIcon,
@@ -15,6 +15,8 @@ import {
   notifyProjectsChanged,
   onProjectsChanged
 } from '@renderer/features/projects/project-events'
+import { SessionTabs } from '@renderer/features/session/SessionTabs'
+import { closeSessionTab, sessionTabs } from '@renderer/features/session/session-tabs'
 import { useSidebar } from '../context/sidebar-state'
 
 const SEARCH_SHORTCUT = /Mac/i.test(navigator.userAgent) ? '⌘K' : 'Ctrl K'
@@ -37,8 +39,38 @@ export const AppSidebar = () => {
   })
 
   const [activeProjectId, setActiveProjectId] = createSignal<string>()
-  const [activeSessionId, setActiveSessionId] = createSignal<string>()
   const [busy, setBusy] = createSignal(false)
+  const location = useLocation()
+
+  // The URL is the source of truth for the active tab, including direct navigation.
+  const activeSessionId = () => {
+    const match = location.pathname.match(/^\/sessions\/([^/?#]+)/)
+
+    return match?.[1]
+  }
+
+  const activeProject = () => {
+    const sessionId = activeSessionId()
+    const list = projects() ?? []
+
+    if (sessionId) {
+      const owner = list.find((project) =>
+        project.sessions.some((session) => session.id === sessionId)
+      )
+
+      if (owner) return owner
+    }
+
+    return list.find((project) => project.id === activeProjectId()) ?? list[0]
+  }
+
+  /** The tab to open after closing/deleting `sessionId`, preferring the next one. */
+  const tabAfter = (sessionId: string): string | undefined => {
+    const open = sessionTabs()
+    const index = open.findIndex((tab) => tab.id === sessionId)
+
+    return open[index + 1]?.id ?? open[index - 1]?.id
+  }
 
   const addProject = async () => {
     setBusy(true)
@@ -48,7 +80,6 @@ export const AppSidebar = () => {
 
       if (project) {
         setActiveProjectId(project.id)
-        setActiveSessionId(undefined)
         await refetch()
         notifyProjectsChanged()
       }
@@ -57,12 +88,45 @@ export const AppSidebar = () => {
     }
   }
 
+  const newSession = async () => {
+    const project = activeProject()
+
+    if (!project) {
+      navigate('/')
+
+      return
+    }
+
+    setBusy(true)
+
+    try {
+      const session = await window.api.sessions.create(project.id, project.rootPath)
+
+      await refetch()
+      notifyProjectsChanged()
+      navigate(`/sessions/${session.id}`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const closeTab = (sessionId: string) => {
+    const next = tabAfter(sessionId)
+
+    closeSessionTab(sessionId)
+
+    if (activeSessionId() === sessionId) {
+      navigate(next ? `/sessions/${next}` : '/')
+    }
+  }
+
   const removeProject = async (projectId: string) => {
+    const wasActive = activeProject()?.id === projectId
+
     await window.api.projects.delete(projectId)
 
-    if (activeProjectId() === projectId) {
+    if (wasActive) {
       setActiveProjectId(undefined)
-      setActiveSessionId(undefined)
       navigate('/')
     }
 
@@ -71,11 +135,14 @@ export const AppSidebar = () => {
   }
 
   const removeSession = async (sessionId: string) => {
-    await window.api.sessions.delete(sessionId)
+    const next = tabAfter(sessionId)
+    const wasActive = activeSessionId() === sessionId
 
-    if (activeSessionId() === sessionId) {
-      setActiveSessionId(undefined)
-      navigate('/')
+    await window.api.sessions.delete(sessionId)
+    closeSessionTab(sessionId)
+
+    if (wasActive) {
+      navigate(next ? `/sessions/${next}` : '/')
     }
 
     await refetch()
@@ -88,10 +155,7 @@ export const AppSidebar = () => {
         <NavItem
           icon={<HugeiconsIcon icon={DashboardSquareAddIcon} size={15} class="text-neutral-400" />}
           label="Home"
-          onClick={() => {
-            setActiveSessionId(undefined)
-            navigate('/')
-          }}
+          onClick={() => navigate('/')}
         />
         <IconButton
           label={sidebar.collapsed() ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -112,19 +176,30 @@ export const AppSidebar = () => {
         />
       </div>
 
-      <div class="mt-4 flex shrink-0 items-center justify-between px-3 pb-1">
-        <span class="text-[13px] font-medium tracking-wide text-neutral-500">Projects</span>
-        <IconButton
-          label="Add project"
-          class="p-1"
-          disabled={busy()}
-          onClick={() => void addProject()}
-        >
-          <HugeiconsIcon icon={FolderAddIcon} size={15} class="text-neutral-600" />
-        </IconButton>
-      </div>
-
       <div class="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
+        <SessionTabs
+          projects={projects()}
+          activeSessionId={activeSessionId()}
+          onNew={() => void newSession()}
+          onClose={closeTab}
+          onOpen={(tab) => {
+            setActiveProjectId(tab.projectId)
+            navigate(`/sessions/${tab.id}`)
+          }}
+        />
+
+        <div class="mt-4 flex shrink-0 items-center justify-between px-1 pb-1">
+          <span class="text-[13px] font-medium tracking-wide text-neutral-500">Projects</span>
+          <IconButton
+            label="Add project"
+            class="p-1"
+            disabled={busy()}
+            onClick={() => void addProject()}
+          >
+            <HugeiconsIcon icon={FolderAddIcon} size={15} class="text-neutral-600" />
+          </IconButton>
+        </div>
+
         <Show when={projects.error}>
           <div class="mx-1 mt-1 rounded-md border border-dashed border-red-200 px-3 py-2 text-center">
             <p class="text-[12px] text-red-500">Couldn't load projects</p>
@@ -148,11 +223,9 @@ export const AppSidebar = () => {
           onRefresh={refetch}
           onSelectProject={(project) => {
             setActiveProjectId(project.id)
-            setActiveSessionId(undefined)
           }}
           onSelectSession={(session) => {
             setActiveProjectId(session.projectId)
-            setActiveSessionId(session.id)
             navigate(`/sessions/${session.id}`)
           }}
           onDeleteSession={(session) => void removeSession(session.id)}

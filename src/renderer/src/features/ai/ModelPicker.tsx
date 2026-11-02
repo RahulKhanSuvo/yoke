@@ -74,7 +74,7 @@ export function ModelPicker(props: ModelPickerProps): JSX.Element {
             </Show>
           </DialogHeader>
 
-          <div class="flex max-h-[26rem] flex-col overflow-y-auto px-2 py-2">
+          <div class="flex max-h-104 flex-col overflow-y-auto px-2 py-2">
             <Show
               when={connected().length > 0}
               fallback={
@@ -117,9 +117,7 @@ export function ModelPicker(props: ModelPickerProps): JSX.Element {
 
             <Show when={providers().length > 0}>
               <section class="mt-2 flex flex-col gap-3 rounded-xl border border-line bg-surface-soft p-4">
-                <p class="text-[13px] text-neutral-600">
-                  Add more models from popular providers
-                </p>
+                <p class="text-[13px] text-neutral-600">Add more models from popular providers</p>
 
                 <div class="grid grid-cols-2 gap-2.5">
                   <For each={providers()}>

@@ -23,7 +23,13 @@ export function createGlobTool(directory: string) {
       pattern: z.string().describe('Glob pattern relative to the project root'),
       path: z.string().optional().describe('Directory to search in')
     }),
-    execute: async ({ pattern, path }) => {
+    execute: async ({
+      pattern,
+      path
+    }: {
+      pattern: string
+      path?: string
+    }) => {
       const base = path ? resolveInside(directory, path) : directory
       const matches: string[] = []
 
@@ -50,7 +56,15 @@ export function createGrepTool(directory: string) {
       include: z.string().optional().describe('Glob filter, for example "**/*.ts"'),
       path: z.string().optional().describe('Directory to search in')
     }),
-    execute: async ({ pattern, include, path }) => {
+    execute: async ({
+      pattern,
+      include,
+      path
+    }: {
+      pattern: string
+      include?: string
+      path?: string
+    }) => {
       const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, (value) => `\\${value}`)
 
       let regex: RegExp

@@ -1,6 +1,7 @@
 import type {
   AssistantContent,
   ModelMessage,
+  ReasoningPart,
   TextPart,
   ToolCallPart,
   ToolResultPart
@@ -42,6 +43,20 @@ export function toModelMessages(messages: SessionMessage[]): ModelMessage[] {
             text: part.text,
             ...(part.providerMetadata
               ? { providerOptions: part.providerMetadata as TextPart['providerOptions'] }
+              : {})
+          })
+        }
+
+        continue
+      }
+
+      if (part.type === 'reasoning') {
+        if (part.text) {
+          content.push({
+            type: 'reasoning',
+            text: part.text,
+            ...(part.providerMetadata
+              ? { providerOptions: part.providerMetadata as ReasoningPart['providerOptions'] }
               : {})
           })
         }

@@ -33,6 +33,7 @@ export interface AgentResult {
 
 type ToolPart = Extract<MessagePart, { type: 'tool' }>
 type TextPart = Extract<MessagePart, { type: 'text' }>
+type ReasoningPart = Extract<MessagePart, { type: 'reasoning' }>
 
 function stringify(value: unknown): string {
   const text = typeof value === 'string' ? value : JSON.stringify(value, null, 2)
@@ -72,11 +73,52 @@ export async function runAgent(
 
   const parts: MessagePart[] = []
   const toolParts = new Map<string, ToolPart>()
+  const reasoningParts = new Map<string, ReasoningPart>()
   let text = ''
   let activeText: TextPart | undefined
 
   for await (const event of result.fullStream) {
     switch (event.type) {
+      case 'reasoning-start': {
+        // A thought is its own block; following text starts a new paragraph.
+        activeText = undefined
+
+        const part: ReasoningPart = {
+          type: 'reasoning',
+          text: '',
+          ...(event.providerMetadata ? { providerMetadata: event.providerMetadata } : {})
+        }
+
+        reasoningParts.set(event.id, part)
+        parts.push(part)
+        callbacks.onPart({ ...part })
+        break
+      }
+
+      case 'reasoning-delta': {
+        const part = reasoningParts.get(event.id)
+
+        if (!part) break
+
+        part.text += event.text
+        if (event.providerMetadata) part.providerMetadata = event.providerMetadata
+        callbacks.onPart({ ...part })
+        break
+      }
+
+      case 'reasoning-end': {
+        const part = reasoningParts.get(event.id)
+
+        if (!part) break
+
+        if (event.providerMetadata) {
+          part.providerMetadata = event.providerMetadata
+          callbacks.onPart({ ...part })
+        }
+
+        break
+      }
+
       case 'text-delta': {
         text += event.text
         activeText ??= pushText(parts)

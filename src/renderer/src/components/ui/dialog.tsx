@@ -21,17 +21,28 @@ const DialogPortal: Component<DialogPrimitive.DialogPortalProps> = (props) => {
 }
 
 type DialogOverlayProps<T extends ValidComponent = 'div'> =
-  DialogPrimitive.DialogOverlayProps<T> & { class?: string | undefined }
+  DialogPrimitive.DialogOverlayProps<T> & {
+    class?: string | undefined
+    /** Skip the fade/scale entrance animation. */
+    disableAnimation?: boolean
+  }
+
+const OVERLAY_ANIMATION =
+  'data-[expanded]:animate-in data-[closed]:animate-out data-[closed]:fade-out-0 data-[expanded]:fade-in-0'
+
+const CONTENT_ANIMATION =
+  'data-[expanded]:animate-in data-[closed]:animate-out data-[closed]:fade-out-0 data-[expanded]:fade-in-0 data-[closed]:zoom-out-95 data-[expanded]:zoom-in-95 data-[closed]:slide-out-to-left-1/2 data-[closed]:slide-out-to-top-[48%] data-[expanded]:slide-in-from-left-1/2 data-[expanded]:slide-in-from-top-[48%]'
 
 const DialogOverlay = <T extends ValidComponent = 'div'>(
   props: PolymorphicProps<T, DialogOverlayProps<T>>
 ) => {
-  const [, rest] = splitProps(props as DialogOverlayProps, ['class'])
+  const [local, rest] = splitProps(props as DialogOverlayProps, ['class', 'disableAnimation'])
   return (
     <DialogPrimitive.Overlay
       class={cn(
-        'fixed inset-0 z-50 bg-background/80 data-[expanded]:animate-in data-[closed]:animate-out data-[closed]:fade-out-0 data-[expanded]:fade-in-0',
-        props.class
+        'fixed inset-0 z-50 bg-background/80',
+        !local.disableAnimation && OVERLAY_ANIMATION,
+        local.class
       )}
       {...rest}
     />
@@ -42,19 +53,26 @@ type DialogContentProps<T extends ValidComponent = 'div'> =
   DialogPrimitive.DialogContentProps<T> & {
     class?: string | undefined
     children?: JSX.Element
+    /** Skip the zoom/slide entrance animation. */
+    disableAnimation?: boolean
   }
 
 const DialogContent = <T extends ValidComponent = 'div'>(
   props: PolymorphicProps<T, DialogContentProps<T>>
 ) => {
-  const [, rest] = splitProps(props as DialogContentProps, ['class', 'children'])
+  const [local, rest] = splitProps(props as DialogContentProps, [
+    'class',
+    'children',
+    'disableAnimation'
+  ])
   return (
     <DialogPortal>
-      <DialogOverlay />
+      <DialogOverlay disableAnimation={local.disableAnimation} />
       <DialogPrimitive.Content
         class={cn(
-          'fixed left-1/2 top-1/2 z-50 grid max-h-screen w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto border bg-background p-6 shadow-lg duration-200 data-expanded:animate-in data-[closed]:animate-out data-[closed]:fade-out-0 data-[expanded]:fade-in-0 data-[closed]:zoom-out-95 data-[expanded]:zoom-in-95 data-[closed]:slide-out-to-left-1/2 data-[closed]:slide-out-to-top-[48%] data-[expanded]:slide-in-from-left-1/2 data-[expanded]:slide-in-from-top-[48%] sm:rounded-lg',
-          props.class
+          'fixed left-1/2 top-1/2 z-50 grid max-h-screen w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto border bg-background p-6 shadow-lg duration-200 sm:rounded-lg',
+          !local.disableAnimation && CONTENT_ANIMATION,
+          local.class
         )}
         {...rest}
       >

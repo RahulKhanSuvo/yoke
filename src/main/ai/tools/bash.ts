@@ -24,7 +24,7 @@ export function createBashTool(directory: string) {
         .optional()
         .describe('Timeout in milliseconds')
     }),
-    execute: async ({ command, timeout }) => {
+    run: async ({ command, timeout }) => {
       try {
         const { stdout, stderr } = await run(command, {
           cwd: directory,

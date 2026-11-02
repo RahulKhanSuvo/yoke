@@ -24,7 +24,11 @@ interface ToolMeta {
 }
 
 const TOOL_META: Record<ToolName, ToolMeta> = {
-  bash: { label: 'Terminal', icon: ComputerTerminal01Icon, color: 'text-amber-500 bg-amber-500/10' },
+  bash: {
+    label: 'Terminal',
+    icon: ComputerTerminal01Icon,
+    color: 'text-amber-500 bg-amber-500/10'
+  },
   edit: { label: 'Edit File', icon: PencilEdit02Icon, color: 'text-blue-500 bg-blue-500/10' },
   write: { label: 'Write File', icon: File01Icon, color: 'text-emerald-500 bg-emerald-500/10' },
   read: { label: 'Read File', icon: AiViewIcon, color: 'text-indigo-500 bg-indigo-500/10' },
@@ -58,15 +62,17 @@ export function ToolCallCard(props: ToolCallCardProps): JSX.Element {
     setOpen(!open())
   }
 
-  const meta = () => TOOL_META[props.part.name] ?? {
-    label: props.part.name,
-    icon: ComputerTerminal01Icon,
-    color: 'text-neutral-500 bg-neutral-500/10'
-  }
+  const meta = () =>
+    TOOL_META[props.part.name] ?? {
+      label: props.part.name,
+      icon: ComputerTerminal01Icon,
+      color: 'text-neutral-500 bg-neutral-500/10'
+    }
 
-  const inputObj = () => (props.part.input && typeof props.part.input === 'object'
-    ? (props.part.input as Record<string, unknown>)
-    : {})
+  const inputObj = () =>
+    props.part.input && typeof props.part.input === 'object'
+      ? (props.part.input as Record<string, unknown>)
+      : {}
 
   const summary = createMemo(() => {
     const inp = inputObj()
@@ -111,7 +117,9 @@ export function ToolCallCard(props: ToolCallCardProps): JSX.Element {
       >
         <div class="flex min-w-0 flex-1 items-center gap-2.5">
           {/* Tool Icon */}
-          <div class={`flex size-6 shrink-0 items-center justify-center rounded-md ${meta().color}`}>
+          <div
+            class={`flex size-6 shrink-0 items-center justify-center rounded-md ${meta().color}`}
+          >
             <HugeiconsIcon icon={meta().icon} size={14} />
           </div>
 
@@ -172,8 +180,12 @@ export function ToolCallCard(props: ToolCallCardProps): JSX.Element {
           <Show when={props.part.name === 'edit'}>
             <EditToolView
               path={String(inputObj().path ?? '')}
-              oldString={typeof inputObj().oldString === 'string' ? String(inputObj().oldString) : ''}
-              newString={typeof inputObj().newString === 'string' ? String(inputObj().newString) : ''}
+              oldString={
+                typeof inputObj().oldString === 'string' ? String(inputObj().oldString) : ''
+              }
+              newString={
+                typeof inputObj().newString === 'string' ? String(inputObj().newString) : ''
+              }
               output={props.part.output}
               error={props.part.error}
             />
@@ -271,9 +283,7 @@ function BashToolView(props: {
         </div>
 
         <Show when={props.output}>
-          <pre class="mt-2 whitespace-pre-wrap text-neutral-300 font-mono">
-            {props.output}
-          </pre>
+          <pre class="mt-2 whitespace-pre-wrap text-neutral-300 font-mono">{props.output}</pre>
         </Show>
 
         <Show when={props.running && !props.output}>
@@ -381,7 +391,7 @@ function WriteToolView(props: {
   )
 }
 
-/** OpenCode Code Viewer for File Reads */
+/**  Viewer for File Reads */
 function ReadToolView(props: {
   path: string
   offset: number
@@ -400,9 +410,7 @@ function ReadToolView(props: {
       <div class="max-h-72 overflow-y-auto bg-surface-soft p-2">
         <Show
           when={lines().length > 0}
-          fallback={
-            <div class="p-2 text-foreground-muted italic">Reading file…</div>
-          }
+          fallback={<div class="p-2 text-foreground-muted italic">Reading file…</div>}
         >
           <table class="w-full border-collapse">
             <tbody>

@@ -6,6 +6,7 @@ import ChevronRightIcon from '@hugeicons/core-free-icons/ChevronRightIcon'
 import Delete02Icon from '@hugeicons/core-free-icons/Delete02Icon'
 import Folder01Icon from '@hugeicons/core-free-icons/Folder01Icon'
 import { IconButton } from '@renderer/components/ui/IconButton'
+import { notifyProjectsChanged } from '@renderer/features/projects/project-events'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,6 +58,7 @@ function ProjectNode(props: ProjectNodeProps): JSX.Element {
 
       if (!props.expanded) props.onToggle()
 
+      notifyProjectsChanged()
       await props.onRefresh()
       props.onSelectSession(session)
     } finally {

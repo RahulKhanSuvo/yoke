@@ -47,9 +47,12 @@ export interface AgentInfo {
 /**
  * One piece of an assistant turn. Text parts are streamed token by token,
  * tool parts are created on `tool-call` and updated on `tool-result`.
+ *
+ * `providerMetadata` carries provider-specific data such as Gemini thought
+ * signatures. It must survive persistence so replayed tool calls stay valid.
  */
 export type MessagePart =
-  | { type: 'text'; text: string }
+  | { type: 'text'; text: string; providerMetadata?: Record<string, unknown> }
   | {
       type: 'tool'
       toolCallId: string
@@ -58,6 +61,7 @@ export type MessagePart =
       status: 'running' | 'completed' | 'error'
       output?: string
       error?: string
+      providerMetadata?: Record<string, unknown>
     }
 
 /** Shape persisted in `session_message.data`. */

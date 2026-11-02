@@ -81,6 +81,7 @@ export async function runAgent(
         text += event.text
         activeText ??= pushText(parts)
         activeText.text += event.text
+        if (event.providerMetadata) activeText.providerMetadata = event.providerMetadata
         callbacks.onText(event.text)
         break
       }
@@ -94,7 +95,8 @@ export async function runAgent(
           toolCallId: event.toolCallId,
           name: event.toolName as ToolName,
           input: event.input,
-          status: 'running'
+          status: 'running',
+          providerMetadata: event.providerMetadata
         }
 
         toolParts.set(event.toolCallId, part)

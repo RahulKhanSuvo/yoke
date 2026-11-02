@@ -1,4 +1,10 @@
-import type { AssistantContent, ModelMessage, ToolResultPart } from 'ai'
+import type {
+  AssistantContent,
+  ModelMessage,
+  TextPart,
+  ToolCallPart,
+  ToolResultPart
+} from 'ai'
 
 import type { MessagePart } from '../../shared/ai'
 import type { SessionMessage } from '../services/session.service'
@@ -30,7 +36,16 @@ export function toModelMessages(messages: SessionMessage[]): ModelMessage[] {
 
     for (const part of parts) {
       if (part.type === 'text') {
-        if (part.text) content.push({ type: 'text', text: part.text })
+        if (part.text) {
+          content.push({
+            type: 'text',
+            text: part.text,
+            ...(part.providerMetadata
+              ? { providerOptions: part.providerMetadata as TextPart['providerOptions'] }
+              : {})
+          })
+        }
+
         continue
       }
 
@@ -38,7 +53,10 @@ export function toModelMessages(messages: SessionMessage[]): ModelMessage[] {
         type: 'tool-call',
         toolCallId: part.toolCallId,
         toolName: part.name,
-        input: part.input
+        input: part.input,
+        ...(part.providerMetadata
+          ? { providerOptions: part.providerMetadata as ToolCallPart['providerOptions'] }
+          : {})
       })
 
       if (part.status === 'running') continue

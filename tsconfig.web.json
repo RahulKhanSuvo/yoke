@@ -4,8 +4,10 @@
     "src/renderer/src/env.d.ts",
     "src/renderer/src/**/*",
     "src/renderer/src/**/*.tsx",
-    "src/preload/*.d.ts"
-, "src/main/ai/providers"  ],
+    "src/preload/*.d.ts",
+    "src/shared/**/*",
+    "src/main/ai/providers"
+  ],
   "compilerOptions": {
     "composite": true,
     "jsxImportSource": "solid-js",
@@ -13,6 +15,9 @@
     "paths": {
       "@renderer/*": [
         "src/renderer/src/*"
+      ],
+      "@shared/*": [
+        "src/shared/*"
       ]
     }
   }

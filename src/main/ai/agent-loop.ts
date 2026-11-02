@@ -1,10 +1,11 @@
 import { stepCountIs, streamText, type ModelMessage } from 'ai'
 
 import type { AgentId, MessagePart, ProviderId, ToolName } from '../../shared/ai'
-import { findAgent } from '../../shared/agents'
+
 import { systemPrompt } from './agents'
 import { resolveModel } from './model-resolver'
 import { buildTools } from './tools'
+import { findAgent } from '../../shared/agents'
 
 const MAX_OUTPUT = 20_000
 

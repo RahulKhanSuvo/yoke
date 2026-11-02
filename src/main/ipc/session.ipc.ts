@@ -1,5 +1,11 @@
 import { ipcMain } from 'electron'
-import { createSession, getProjectSessions, deleteSection } from '../services/session.service'
+import {
+  createSession,
+  deleteSession,
+  getProjectSessions,
+  getSession,
+  getSessionMessages
+} from '../services/session.service'
 
 export function registerSessionIpc(): void {
   // Create a new session
@@ -12,8 +18,18 @@ export function registerSessionIpc(): void {
     return getProjectSessions(projectId)
   })
 
-  // Delete a session
+  // Get one session with its project
+  ipcMain.handle('sessions:get', async (_, id: string) => {
+    return getSession(id)
+  })
+
+  // Get the ordered transcript of a session
+  ipcMain.handle('sessions:messages', async (_, id: string) => {
+    return getSessionMessages(id)
+  })
+
+  // Delete a session and its transcript
   ipcMain.handle('sessions:delete', async (_, id: string) => {
-    return deleteSection(id)
+    return deleteSession(id)
   })
 }

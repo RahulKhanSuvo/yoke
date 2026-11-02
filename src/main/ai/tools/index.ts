@@ -12,7 +12,7 @@ import { createGlobTool, createGrepTool } from './search'
  * directory, so every path the model sends is resolved inside the project.
  */
 export function buildTools(directory: string, allowed: ToolName[]): ToolSet {
-  const available: Record<ToolName, ReturnType<typeof createReadTool>> = {
+  const available: Record<ToolName, any> = {
     read: createReadTool(directory),
     list: createListTool(directory),
     glob: createGlobTool(directory),

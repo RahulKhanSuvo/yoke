@@ -17,8 +17,8 @@ export interface ChatComposerProps {
 }
 
 /**
- * Prompt box shared by the landing and session screens. Grows with the text and
- * submits on Enter (Shift+Enter inserts a newline).
+ * OpenCode styled bottom prompt dock.
+ * Supports auto-expansion, agent & model selector pills, and key command triggers.
  */
 export function ChatComposer(props: ChatComposerProps): JSX.Element {
   const canSend = () => props.value.trim().length > 0 && !props.busy && !props.disabled
@@ -31,64 +31,69 @@ export function ChatComposer(props: ChatComposerProps): JSX.Element {
   const handleKeyDown = (event: KeyboardEvent) => {
     if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
       event.preventDefault()
-
       if (!props.busy) submit()
     }
   }
 
   return (
-    <div class="flex flex-col rounded-xl border border-line bg-surface p-3 shadow-sm transition focus-within:border-neutral-300 focus-within:shadow-md">
+    <div class="flex flex-col rounded-2xl border border-line bg-surface p-3 shadow-xs transition-all focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10">
       <textarea
         rows={1}
         value={props.value}
         autofocus={props.autofocus ?? true}
-        placeholder="Ask anything, / for commands, @ for context..."
-        class="field-sizing-content max-h-56 w-full resize-none bg-transparent text-[14px] leading-relaxed text-foreground outline-none placeholder:text-neutral-400"
+        placeholder="Plan, code, run commands... (@ for context, / for tools)"
+        class="field-sizing-content max-h-56 w-full resize-none bg-transparent px-1 text-[13.5px] leading-relaxed text-foreground outline-none placeholder:text-foreground-muted/60"
         onInput={(event) => props.onValueChange(event.currentTarget.value)}
         onKeyDown={handleKeyDown}
       />
 
-      <div class="mt-3 flex items-center justify-between gap-2">
-        <div class="flex min-w-0 items-center gap-1">
+      <div class="mt-2.5 flex items-center justify-between gap-2 pt-1 border-t border-line/40">
+        <div class="flex min-w-0 items-center gap-1.5">
           <button
             type="button"
             aria-label="Add attachment"
-            class="rounded-md p-1.5 text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-600"
+            class="flex size-7 items-center justify-center rounded-lg text-foreground-muted transition hover:bg-surface-mute hover:text-foreground"
           >
-            <HugeiconsIcon icon={PlusSignIcon} size={16} />
+            <HugeiconsIcon icon={PlusSignIcon} size={15} />
           </button>
 
           <AgentPicker />
           <ModelPicker />
         </div>
 
-        <Show
-          when={props.busy}
-          fallback={
+        <div class="flex items-center gap-2">
+          <span class="hidden sm:inline-block text-[11px] text-foreground-muted/60 select-none">
+            ↵ send
+          </span>
+
+          <Show
+            when={props.busy}
+            fallback={
+              <button
+                type="button"
+                aria-label="Send"
+                disabled={!canSend()}
+                class="flex size-7.5 shrink-0 items-center justify-center rounded-xl transition-all"
+                classList={{
+                  'bg-primary text-primary-foreground hover:opacity-90 shadow-xs cursor-pointer': canSend(),
+                  'bg-surface-mute text-foreground-muted/40 cursor-not-allowed': !canSend()
+                }}
+                onClick={submit}
+              >
+                <HugeiconsIcon icon={ArrowUp01Icon} size={16} />
+              </button>
+            }
+          >
             <button
               type="button"
-              aria-label="Send"
-              disabled={!canSend()}
-              class="flex size-7 shrink-0 items-center justify-center rounded-full transition-colors"
-              classList={{
-                'bg-neutral-900 text-white hover:bg-neutral-700': canSend(),
-                'bg-neutral-200 text-neutral-500': !canSend()
-              }}
-              onClick={submit}
+              aria-label="Stop generation"
+              class="flex size-7.5 shrink-0 items-center justify-center rounded-xl bg-danger/10 text-danger transition-all hover:bg-danger/20 cursor-pointer"
+              onClick={props.onCancel}
             >
-              <HugeiconsIcon icon={ArrowUp01Icon} size={16} />
+              <HugeiconsIcon icon={StopIcon} size={14} />
             </button>
-          }
-        >
-          <button
-            type="button"
-            aria-label="Stop"
-            class="flex size-7 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white transition-colors hover:bg-neutral-700"
-            onClick={props.onCancel}
-          >
-            <HugeiconsIcon icon={StopIcon} size={13} />
-          </button>
-        </Show>
+          </Show>
+        </div>
       </div>
     </div>
   )

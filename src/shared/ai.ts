@@ -46,13 +46,15 @@ export interface AgentInfo {
 
 /**
  * One piece of an assistant turn. Text parts are streamed token by token,
- * tool parts are created on `tool-call` and updated on `tool-result`.
+ * reasoning parts stream the model's thinking, and tool parts are created on
+ * `tool-call` and updated on `tool-result`.
  *
  * `providerMetadata` carries provider-specific data such as Gemini thought
  * signatures. It must survive persistence so replayed tool calls stay valid.
  */
 export type MessagePart =
   | { type: 'text'; text: string; providerMetadata?: Record<string, unknown> }
+  | { type: 'reasoning'; text: string; providerMetadata?: Record<string, unknown> }
   | {
       type: 'tool'
       toolCallId: string
@@ -67,7 +69,7 @@ export type MessagePart =
 /** Shape persisted in `session_message.data`. */
 export interface SessionMessageData {
   text: string
-  /** Ordered transcript of the turn (text + tool calls). */
+  /** Ordered transcript of the turn (text, reasoning, and tool calls). */
   parts?: MessagePart[]
 }
 

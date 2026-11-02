@@ -1,83 +1,93 @@
+import { createResource, createSignal, Show, type JSX } from 'solid-js'
+import { useNavigate } from '@solidjs/router'
 import { HugeiconsIcon } from '@hugeicons/solid-js'
-import {
-  ArrowUp01Icon,
-  ChevronDownIcon,
-  ChevronRightIcon,
-  GitBranchIcon,
-  MonitorIcon,
-  PlusSignIcon
-} from '@hugeicons/core-free-icons'
+import ChevronRightIcon from '@hugeicons/core-free-icons/ChevronRightIcon'
 import { PixelText } from '@renderer/components/ui/PixelText'
+import { ChatComposer } from '@renderer/features/chat/ChatComposer'
+import { ProjectMeta } from '@renderer/features/chat/ProjectMeta'
+import { aiStore } from '@renderer/features/ai/ai-store'
+import { notifyProjectsChanged } from '@renderer/features/projects/project-events'
 
-// Static placeholders — wired up to real data later.
-const PROJECT_NAME = 'yoke'
-const PROJECT_PATH = '/home/rahul/Projects/open-source/yoke'
-const GIT_BRANCH = 'main'
-const MODEL_NAME = 'Big Pickle'
+function HomeView(): JSX.Element {
+  const navigate = useNavigate()
 
-function HomeView() {
+  const [projects] = createResource(async () => {
+    if (!window.api) return []
+    return window.api.projects.list()
+  })
+
+  const [draft, setDraft] = createSignal('')
+  const [creating, setCreating] = createSignal(false)
+  const [error, setError] = createSignal<string>()
+
+  // New sessions go into the most recently used project unless none exists yet.
+  const project = () => projects()?.[0]
+
+  const startSession = async () => {
+    const prompt = draft().trim()
+
+    if (!prompt || creating() || !window.api) return
+
+    setCreating(true)
+    setError()
+
+    try {
+      const existing = project()
+      const target = existing ?? (await window.api.projects.selectFolder())
+
+      if (!target) return
+
+      if (!existing) notifyProjectsChanged()
+
+      const session = await window.api.sessions.create(target.id, target.rootPath)
+
+      notifyProjectsChanged()
+      setDraft('')
+      navigate(`/sessions/${session.id}?prompt=${encodeURIComponent(prompt)}`)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not start a session')
+    } finally {
+      setCreating(false)
+    }
+  }
+
   return (
     <div class="flex h-full flex-col bg-surface-soft">
       <div class="flex flex-1 flex-col items-center justify-center gap-8 px-8">
         <PixelText text="yoke" pixel={14} class="text-neutral-200" />
 
         <div class="flex w-full max-w-180 flex-col gap-3">
-          {/* Prompt box */}
-          <div class="flex flex-col rounded-xl border border-line bg-surface p-3 shadow-sm">
-            <input
-              type="text"
-              placeholder="Ask anything, / for commands, @ for context..."
-              class="w-full bg-transparent text-[14px] text-foreground outline-none placeholder:text-neutral-400"
-            />
+          <ChatComposer
+            value={draft()}
+            onValueChange={setDraft}
+            onSubmit={() => void startSession()}
+            disabled={creating()}
+          />
 
-            <div class="mt-4 flex items-center justify-between">
-              <div class="flex items-center gap-1">
-                <button
-                  type="button"
-                  aria-label="Add attachment"
-                  class="rounded-md p-1.5 text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-600"
-                >
-                  <HugeiconsIcon icon={PlusSignIcon} size={16} />
-                </button>
-                <button
-                  type="button"
-                  class="flex items-center gap-1.5 rounded-md px-2 py-1 text-[13px] text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900"
-                >
-                  {MODEL_NAME}
-                  <HugeiconsIcon icon={ChevronDownIcon} size={14} class="text-neutral-400" />
-                </button>
-              </div>
+          <Show
+            when={project()}
+            fallback={
+              <p class="px-1 text-[12.5px] text-neutral-500">
+                No project yet — your first message will ask you to choose a folder.
+              </p>
+            }
+          >
+            {(active) => <ProjectMeta name={active().name} path={active().rootPath} />}
+          </Show>
 
-              <button
-                type="button"
-                aria-label="Send"
-                disabled
-                class="flex size-7 items-center justify-center rounded-full bg-neutral-200 text-neutral-500"
-              >
-                <HugeiconsIcon icon={ArrowUp01Icon} size={16} />
-              </button>
-            </div>
-          </div>
+          <Show when={!aiStore.providers.loading && !aiStore.hasConfiguredProvider()}>
+            <button
+              type="button"
+              class="px-1 text-left text-[12.5px] text-neutral-500 transition hover:text-neutral-800"
+              onClick={() => navigate('/settings')}
+            >
+              Connect an AI provider to start chatting →
+            </button>
+          </Show>
 
-          {/* Project / branch / path row */}
-          <div class="flex items-center justify-between px-1 text-[12.5px] text-neutral-500">
-            <div class="flex items-center gap-2.5">
-              <span class="flex size-4.5 items-center justify-center rounded-[5px] bg-neutral-900">
-                <PixelText text="y" pixel={2} class="text-white" />
-              </span>
-              <span class="text-neutral-700">{PROJECT_NAME}</span>
-              <span class="size-1.5 rounded-full bg-blue-500" />
-              <span class="flex items-center gap-1">
-                <HugeiconsIcon icon={GitBranchIcon} size={13} class="text-neutral-400" />
-                {GIT_BRANCH}
-              </span>
-            </div>
-
-            <div class="flex items-center gap-1.5">
-              <HugeiconsIcon icon={MonitorIcon} size={13} class="text-neutral-400" />
-              <span class="truncate">{PROJECT_PATH}</span>
-            </div>
-          </div>
+          <Show when={error()}>
+            {(message) => <p class="px-1 text-[12.5px] text-danger">{message()}</p>}
+          </Show>
         </div>
       </div>
 
@@ -86,6 +96,7 @@ function HomeView() {
         <button
           type="button"
           class="flex items-center gap-1 text-[13px] text-neutral-500 transition hover:text-neutral-700"
+          onClick={() => navigate('/settings')}
         >
           Connect to 75+ providers to use other models, including Claude, GPT, Gemini, etc
           <HugeiconsIcon icon={ChevronRightIcon} size={14} class="text-neutral-400" />
@@ -94,4 +105,5 @@ function HomeView() {
     </div>
   )
 }
+
 export default HomeView

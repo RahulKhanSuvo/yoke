@@ -18,7 +18,15 @@ export function createReadTool(directory: string) {
       offset: z.number().int().min(1).optional().describe('First line to return (1-based)'),
       limit: z.number().int().min(1).max(MAX_LINES).optional().describe('Number of lines to return')
     }),
-    execute: async ({ path, offset, limit }) => {
+    execute: async ({
+      path,
+      offset,
+      limit
+    }: {
+      path: string
+      offset?: number
+      limit?: number
+    }) => {
       const full = resolveInside(directory, path)
       let text = await readFile(full, 'utf8')
 

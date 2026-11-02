@@ -1,5 +1,6 @@
 import { sqliteTable, text, integer, index, real } from 'drizzle-orm/sqlite-core'
 
+import type { SessionMessageData } from '../../../shared/ai'
 import { projects } from './project'
 import { createId, Timestamps } from '../../utility/commonUit'
 
@@ -42,7 +43,7 @@ export const SessionMessageTable = sqliteTable('session_message', {
   type: text().notNull(), // "user" | "assistant"
   seq: integer().notNull(), // Order sequence (0, 1, 2...)
   time_created: integer(),
-  data: text({ mode: 'json' }) // Message body or instructions
+  data: text({ mode: 'json' }).$type<SessionMessageData>() // Message body or instructions
 })
 
 export const SessionPartTable = sqliteTable('session_part', {

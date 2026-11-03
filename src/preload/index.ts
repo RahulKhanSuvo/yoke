@@ -1,7 +1,14 @@
 import { contextBridge } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import { api } from './api'
+import { projectApi } from './api/project.api'
+import { sessionApi } from './api/session.api'
+import { aiApi } from './api/ai.api'
 
+export const api = {
+  projects: projectApi,
+  sessions: sessionApi,
+  ai: aiApi
+}
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)

@@ -6,6 +6,7 @@ import { credentialService } from './credential.service'
 import { createOpenAIModel } from './providers/openai'
 import { createGoogleModel } from './providers/google'
 import { createAnthropicModel } from './providers/anthropic'
+import { createOpenRouterModel } from './providers/openrouter'
 
 export async function resolveModel(
   providerId: ProviderId,
@@ -26,6 +27,9 @@ export async function resolveModel(
 
     case 'anthropic':
       return createAnthropicModel(apiKey, modelId)
+
+    case 'openrouter':
+      return createOpenRouterModel(apiKey, modelId)
 
     default: {
       const unsupported: never = providerId

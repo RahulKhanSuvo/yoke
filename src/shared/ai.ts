@@ -1,6 +1,6 @@
 /** Types shared between the main process, preload bridge, and renderer. */
 
-export type ProviderId = 'openai' | 'google' | 'anthropic'
+export type ProviderId = 'openai' | 'google' | 'anthropic' | 'openrouter'
 
 export interface ModelInfo {
   id: string

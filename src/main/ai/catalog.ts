@@ -29,6 +29,21 @@ export const PROVIDERS: ProviderInfo[] = [
     ]
   },
   {
+    id: 'openrouter',
+    popular: true,
+    name: 'OpenRouter',
+    apiKeyUrl: 'https://openrouter.ai/keys',
+    models: [
+      { id: 'openai/gpt-4o', name: 'GPT-4o (OpenRouter)', contextWindow: 128_000 },
+      {
+        id: 'anthropic/claude-3.5-sonnet',
+        name: 'Claude 3.5 Sonnet (OpenRouter)',
+        contextWindow: 200_000
+      },
+      { id: 'google/gemini-2.5-pro', name: 'Gemini 2.5 Pro (OpenRouter)', contextWindow: 1_048_576 }
+    ]
+  },
+  {
     id: 'google',
     popular: true,
     name: 'Google Gemini',

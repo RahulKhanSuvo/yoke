@@ -53,14 +53,14 @@ export function ModelPicker(props: ModelPickerProps): JSX.Element {
       <button
         type="button"
         class={cn(
-          'flex max-w-52 items-center gap-1.5 rounded-md px-2 py-1 text-[13px] text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none',
+          'flex h-7 max-w-56 min-w-0 items-center gap-1 rounded-md px-1.5 text-[13px] tracking-[-0.04px] text-foreground-muted transition hover:bg-surface-mute hover:text-foreground focus-visible:outline-none',
           props.class
         )}
         aria-label="Select model"
         onClick={() => setOpen(true)}
       >
         <span class="truncate">{label()}</span>
-        <HugeiconsIcon icon={ChevronDownIcon} size={14} class="shrink-0 text-neutral-400" />
+        <HugeiconsIcon icon={ChevronDownIcon} size={13} class="shrink-0 text-foreground-muted/60" />
       </button>
 
       <Dialog open={open()} onOpenChange={(next) => setOpen(next)}>

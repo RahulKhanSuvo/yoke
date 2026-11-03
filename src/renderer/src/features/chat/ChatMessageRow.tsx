@@ -1,12 +1,10 @@
-import { createMemo, createSignal, For, Show, type JSX } from 'solid-js'
+import { createMemo, createSignal, Index, Match, Show, Switch, type JSX } from 'solid-js'
 import { HugeiconsIcon } from '@hugeicons/solid-js'
 import Copy01Icon from '@hugeicons/core-free-icons/Copy01Icon'
 import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02Icon'
-import AiSparklesIcon from '@hugeicons/core-free-icons/AiSparklesIcon'
 import type { MessagePart } from '@shared/ai'
 import { MarkdownContent } from './MarkdownContent'
-import { ToolCallCard } from './ToolCallCard'
-import { ThinkingBlock } from './ThinkingBlock'
+import { ToolGroup } from './ToolGroup'
 
 export interface ChatMessageView {
   id: string
@@ -20,156 +18,166 @@ export interface ChatMessageRowProps {
   streaming?: boolean
 }
 
+type TextBlock = { type: 'text'; part: Extract<MessagePart, { type: 'text' }> }
+type ContextBlock = {
+  type: 'context'
+  parts: Extract<MessagePart, { type: 'reasoning' | 'tool' }>[]
+}
+type Block = TextBlock | ContextBlock
+
 /**
- * OpenCode Desktop Turn:
- * - User messages with elevated pill styling, copy action on hover
- * - Assistant messages with agent header, thinking traces, rich markdown, and specialized tool cards
+ * One opencode-style turn. User prompts sit in a subtle right-aligned bubble;
+ * assistant turns are an unlabelled stack of text, reasoning, and compact tool
+ * groups.
  */
 export function ChatMessageRow(props: ChatMessageRowProps): JSX.Element {
-  const [copied, setCopied] = createSignal(false)
-
   const parts = createMemo((): MessagePart[] => {
     if (props.message.parts?.length) return props.message.parts
     return props.message.text ? [{ type: 'text', text: props.message.text }] : []
   })
 
-  const fullText = createMemo(() => {
-    if (props.message.text) return props.message.text
-    if (props.message.parts) {
-      return props.message.parts
-        .map((p) => {
-          if (p.type === 'text') return p.text
-          if (p.type === 'tool') return `[Tool: ${p.name}] ${p.output ?? ''}`
-          return ''
-        })
-        .filter(Boolean)
-        .join('\n\n')
+  // Consecutive reasoning/tool parts share one group, matching opencode's
+  // "Used N …" rows. Text parts break the group into a new block.
+  const blocks = createMemo((): Block[] => {
+    const result: Block[] = []
+
+    for (const part of parts()) {
+      if (part.type === 'text') {
+        if (!part.text) continue
+
+        result.push({ type: 'text', part })
+        continue
+      }
+
+      const last = result[result.length - 1]
+
+      if (last?.type === 'context') {
+        last.parts.push(part)
+      } else {
+        result.push({ type: 'context', parts: [part] })
+      }
     }
-    return ''
+
+    return result
   })
 
+  const copyText = createMemo(() =>
+    parts()
+      .filter((part): part is Extract<MessagePart, { type: 'text' }> => part.type === 'text')
+      .map((part) => part.text)
+      .join('\n\n')
+  )
+
+  return (
+    <Show
+      when={props.message.role === 'user'}
+      fallback={
+        <div class="flex w-full min-w-0 flex-col gap-3">
+          <Index each={blocks()}>
+            {(block) => (
+              <Switch>
+                <Match when={block().type === 'text' ? (block() as TextBlock) : undefined}>
+                  {(text) => (
+                    <AssistantText
+                      part={text().part}
+                      copyText={copyText()}
+                      streaming={props.streaming}
+                    />
+                  )}
+                </Match>
+
+                <Match when={block().type === 'context' ? (block() as ContextBlock) : undefined}>
+                  {(context) => <ToolGroup parts={context().parts} busy={props.streaming} />}
+                </Match>
+              </Switch>
+            )}
+          </Index>
+        </div>
+      }
+    >
+      <UserMessage text={props.message.text} />
+    </Show>
+  )
+}
+
+function UserMessage(props: { text: string }): JSX.Element {
+  const [copied, setCopied] = createSignal(false)
+
   const copy = async () => {
-    const text = fullText()
-    if (!text) return
+    if (!props.text) return
+
     try {
-      await navigator.clipboard.writeText(text)
+      await navigator.clipboard.writeText(props.text)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      // Ignore
+      // Ignore clipboard failures.
     }
   }
 
   return (
-    <div class="group/row py-3">
-      <Show
-        when={props.message.role === 'user'}
-        fallback={
-          /* Assistant Turn */
-          <div class="flex flex-col gap-2">
-            {/* Assistant Header */}
-            <div class="flex items-center justify-between text-[12px] text-foreground-muted">
-              <div class="flex items-center gap-2">
-                <div class="flex size-5 items-center justify-center rounded-md bg-primary/10 text-primary">
-                  <HugeiconsIcon icon={AiSparklesIcon} size={13} />
-                </div>
-                <span class="font-medium text-foreground">Assistant</span>
-              </div>
-
-              {/* Hover Actions */}
-              <button
-                type="button"
-                onClick={copy}
-                class="opacity-0 group-hover/row:opacity-100 flex items-center gap-1 rounded px-1.5 py-0.5 text-foreground-muted transition hover:bg-surface-mute hover:text-foreground"
-                aria-label="Copy message"
-              >
-                <Show
-                  when={copied()}
-                  fallback={
-                    <>
-                      <HugeiconsIcon icon={Copy01Icon} size={12} />
-                      <span class="text-[11px]">Copy</span>
-                    </>
-                  }
-                >
-                  <HugeiconsIcon icon={CheckmarkCircle02Icon} size={12} class="text-green-500" />
-                  <span class="text-[11px] text-green-500">Copied</span>
-                </Show>
-              </button>
-            </div>
-
-            {/* Message Body (Interleaved Parts) */}
-            <div class="space-y-2">
-              <For each={parts()}>
-                {(part) => {
-                  if (part.type === 'text') {
-                    return <MarkdownContent content={part.text} />
-                  }
-                  if (part.type === 'tool') {
-                    return <ToolCallCard part={part} />
-                  }
-                  // Optional thinking / reasoning part
-                  if ((part as any).type === 'reasoning') {
-                    return <ThinkingBlock content={(part as any).text} active={props.streaming} />
-                  }
-                  return null
-                }}
-              </For>
-
-              {/* Streaming typing cursor */}
-              <Show when={props.streaming}>
-                <div class="inline-flex items-center gap-1.5 py-1">
-                  <span class="inline-block size-2 animate-ping rounded-full bg-primary/80" />
-                  <span class="text-[12px] text-foreground-muted italic">Streaming…</span>
-                </div>
-              </Show>
-
-              {/* Waiting for response state */}
-              <Show when={parts().length === 0 && !props.streaming}>
-                <TypingIndicator />
-              </Show>
-            </div>
-          </div>
-        }
+    <div class="group/row flex w-full items-end justify-end gap-1.5">
+      <button
+        type="button"
+        onClick={copy}
+        title={copied() ? 'Copied' : 'Copy prompt'}
+        aria-label={copied() ? 'Copied' : 'Copy prompt'}
+        class="mb-1 flex size-6 shrink-0 items-center justify-center rounded-md text-foreground-muted opacity-0 transition hover:bg-surface-mute hover:text-foreground group-hover/row:opacity-100 focus-visible:opacity-100"
       >
-        {/* User Message Bubble */}
-        <div class="flex justify-end">
-          <div class="relative max-w-[85%] rounded-2xl rounded-tr-xs bg-neutral-900 px-4 py-3 text-[14px] leading-relaxed text-white shadow-xs dark:bg-neutral-800">
-            <div class="whitespace-pre-wrap">{props.message.text}</div>
+        <HugeiconsIcon
+          icon={copied() ? CheckmarkCircle02Icon : Copy01Icon}
+          size={13}
+          classList={{ 'text-green-600': copied() }}
+        />
+      </button>
 
-            {/* User Message Copy button on hover */}
-            <button
-              type="button"
-              onClick={copy}
-              class="absolute -top-3 right-2 opacity-0 group-hover/row:opacity-100 flex items-center gap-1 rounded-full border border-line bg-surface px-2 py-0.5 text-[11px] text-foreground-muted shadow-xs transition hover:text-foreground"
-              aria-label="Copy prompt"
-            >
-              <Show
-                when={copied()}
-                fallback={
-                  <>
-                    <HugeiconsIcon icon={Copy01Icon} size={11} />
-                    <span>Copy</span>
-                  </>
-                }
-              >
-                <HugeiconsIcon icon={CheckmarkCircle02Icon} size={11} class="text-green-500" />
-                <span class="text-green-500">Copied</span>
-              </Show>
-            </button>
-          </div>
-        </div>
-      </Show>
+      <div class="max-w-[min(82%,64ch)] rounded-[10px] bg-surface-mute px-3 py-2 text-[14px] leading-[1.5] tracking-[-0.04px] text-foreground whitespace-pre-wrap break-words">
+        {props.text}
+      </div>
     </div>
   )
 }
 
-function TypingIndicator(): JSX.Element {
+function AssistantText(props: {
+  part: Extract<MessagePart, { type: 'text' }>
+  copyText: string
+  streaming?: boolean
+}): JSX.Element {
+  const [copied, setCopied] = createSignal(false)
+
+  const copy = async () => {
+    if (!props.copyText) return
+
+    try {
+      await navigator.clipboard.writeText(props.copyText)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Ignore clipboard failures.
+    }
+  }
+
   return (
-    <div class="inline-flex items-center gap-1 py-2 text-foreground-muted">
-      <span class="size-1.5 animate-bounce rounded-full bg-foreground-muted/60 [animation-delay:-0.3s]" />
-      <span class="size-1.5 animate-bounce rounded-full bg-foreground-muted/60 [animation-delay:-0.15s]" />
-      <span class="size-1.5 animate-bounce rounded-full bg-foreground-muted/60" />
+    <div class="group/text w-full min-w-0">
+      <MarkdownContent content={props.part.text} />
+
+      <Show when={!props.streaming}>
+        <div class="mt-2 flex h-5 items-center">
+          <button
+            type="button"
+            onClick={copy}
+            title={copied() ? 'Copied' : 'Copy message'}
+            aria-label={copied() ? 'Copied' : 'Copy message'}
+            class="-ms-0.5 flex size-5 items-center justify-center rounded-md text-foreground-muted opacity-0 transition hover:bg-surface-mute hover:text-foreground group-hover/text:opacity-100 focus-visible:opacity-100"
+          >
+            <HugeiconsIcon
+              icon={copied() ? CheckmarkCircle02Icon : Copy01Icon}
+              size={13}
+              classList={{ 'text-green-600': copied() }}
+            />
+          </button>
+        </div>
+      </Show>
     </div>
   )
 }

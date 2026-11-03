@@ -27,14 +27,14 @@ export function AgentPicker(props: AgentPickerProps): JSX.Element {
     <DropdownMenu>
       <DropdownMenuTrigger
         class={cn(
-          'flex items-center gap-1.5 rounded-md px-2 py-1 text-[13px] text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900 focus-visible:outline-none',
+          'flex h-7 max-w-44 shrink-0 items-center gap-1 rounded-md px-1.5 text-[13px] tracking-[-0.04px] text-foreground-muted transition hover:bg-surface-mute hover:text-foreground focus-visible:outline-none',
           props.class
         )}
         aria-label="Select agent"
       >
-        <HugeiconsIcon icon={AiBrain01Icon} size={14} class="text-neutral-400" />
+        <HugeiconsIcon icon={AiBrain01Icon} size={14} class="shrink-0 text-foreground-muted/70" />
         <span class="truncate">{selected().name}</span>
-        <HugeiconsIcon icon={ChevronDownIcon} size={14} class="shrink-0 text-neutral-400" />
+        <HugeiconsIcon icon={ChevronDownIcon} size={13} class="shrink-0 text-foreground-muted/60" />
       </DropdownMenuTrigger>
 
       <DropdownMenuContent class="w-64">

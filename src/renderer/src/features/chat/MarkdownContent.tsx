@@ -81,7 +81,7 @@ export function MarkdownContent(props: MarkdownContentProps): JSX.Element {
 
   return (
     <div
-      class={`markdown-content prose dark:prose-invert max-w-none text-[13.5px] leading-relaxed text-foreground ${
+      class={`markdown-content max-w-none text-[14px] leading-[1.6] tracking-[-0.04px] text-foreground ${
         props.class ?? ''
       }`}
     >
@@ -89,7 +89,7 @@ export function MarkdownContent(props: MarkdownContentProps): JSX.Element {
         {(segment) =>
           segment.type === 'html' ? (
             <div
-              class="markdown-html space-y-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&_p]:my-2.5 [&_h1]:text-lg [&_h1]:font-semibold [&_h2]:text-base [&_h2]:font-semibold [&_h3]:text-[14px] [&_h3]:font-semibold [&_blockquote]:border-l-2 [&_blockquote]:border-line [&_blockquote]:pl-3 [&_blockquote]:text-foreground-secondary [&_blockquote]:italic [&_code]:rounded [&_code]:bg-surface-mute [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[12px] [&_a]:text-primary [&_a]:underline [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-line [&_th]:bg-surface-soft [&_th]:p-2 [&_td]:border [&_td]:border-line [&_td]:p-2"
+              class="markdown-html [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_ul]:my-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1 [&_p]:my-3 [&_h1]:mt-7 [&_h1]:mb-3 [&_h1]:text-[17px] [&_h1]:font-semibold [&_h2]:mt-6 [&_h2]:mb-2.5 [&_h2]:text-[15px] [&_h2]:font-semibold [&_h3]:mt-5 [&_h3]:mb-2 [&_h3]:text-[14px] [&_h3]:font-semibold [&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-line [&_blockquote]:pl-3 [&_blockquote]:text-foreground-secondary [&_blockquote]:italic [&_code]:rounded [&_code]:bg-surface-mute [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[12.5px] [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 [&_table]:my-3 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-line [&_th]:bg-surface-soft [&_th]:p-2 [&_td]:border [&_td]:border-line [&_td]:p-2 [&_hr]:my-6 [&_hr]:border-line"
               innerHTML={segment.content}
             />
           ) : (
@@ -117,7 +117,7 @@ function CodeBlockView(props: { block: CodeBlock }): JSX.Element {
   const lines = createMemo(() => props.block.code.split('\n'))
 
   return (
-    <div class="my-3 overflow-hidden rounded-xl border border-line bg-surface-soft shadow-xs">
+    <div class="my-3 overflow-hidden rounded-lg border border-line bg-surface-soft">
       <div class="flex items-center justify-between border-b border-line/70 bg-surface px-3 py-1.5 text-[11.5px]">
         <span class="font-mono font-medium text-foreground-secondary uppercase tracking-wider">
           {props.block.language}

@@ -1,6 +1,6 @@
-import { createSignal, createEffect, Show, type JSX } from 'solid-js'
+import { createSignal, Show, type JSX } from 'solid-js'
 import { HugeiconsIcon } from '@hugeicons/solid-js'
-import AiSparklesIcon from '@hugeicons/core-free-icons/AiSparklesIcon'
+import AiBrain01Icon from '@hugeicons/core-free-icons/AiBrain01Icon'
 import ArrowDown01Icon from '@hugeicons/core-free-icons/ArrowDown01Icon'
 import ArrowRight01Icon from '@hugeicons/core-free-icons/ArrowRight01Icon'
 
@@ -9,48 +9,41 @@ export interface ThinkingBlockProps {
   active?: boolean
 }
 
+/**
+ * A compact reasoning row, matching opencode's "Thought" line. Collapsed by
+ * default; the text expands underneath in muted body type.
+ */
 export function ThinkingBlock(props: ThinkingBlockProps): JSX.Element {
-  const [open, setOpen] = createSignal(Boolean(props.active))
-
-  // While active, keep open; when finished, can collapse
-  createEffect(() => {
-    if (props.active) {
-      setOpen(true)
-    }
-  })
+  const [open, setOpen] = createSignal(false)
 
   return (
-    <div class="my-2 overflow-hidden rounded-xl border border-line/70 bg-surface-soft/60">
+    <div class="flex w-full min-w-0 flex-col">
       <button
         type="button"
         onClick={() => setOpen(!open())}
-        class="flex w-full cursor-pointer items-center justify-between px-3 py-2 text-left text-[12.5px] transition hover:bg-surface-mute/50"
+        aria-expanded={open()}
+        class="flex h-7 w-full min-w-0 items-center gap-2 text-left text-[13px] leading-[1.4]"
       >
-        <div class="flex items-center gap-2">
-          <HugeiconsIcon
-            icon={AiSparklesIcon}
-            size={14}
-            class={`shrink-0 transition-colors ${
-              props.active ? 'text-primary animate-pulse' : 'text-foreground-muted'
-            }`}
-          />
-          <span class="font-medium text-foreground-secondary">
-            {props.active ? 'Thinking…' : 'Thought process'}
-          </span>
-          <Show when={props.active}>
-            <span class="size-1.5 animate-ping rounded-full bg-primary" />
-          </Show>
-        </div>
+        <HugeiconsIcon icon={AiBrain01Icon} size={14} class="shrink-0 text-foreground-muted/70" />
+
+        <span
+          classList={{
+            'font-[530] tracking-[-0.04px] text-foreground': true,
+            'shimmer-text': props.active
+          }}
+        >
+          {props.active ? 'Thinking' : 'Thought'}
+        </span>
 
         <HugeiconsIcon
           icon={open() ? ArrowDown01Icon : ArrowRight01Icon}
-          size={14}
-          class="shrink-0 text-foreground-muted"
+          size={13}
+          class="ml-auto shrink-0 text-foreground-muted/60"
         />
       </button>
 
       <Show when={open()}>
-        <div class="border-t border-line/60 bg-surface/50 px-3.5 py-2.5 text-[12px] leading-relaxed text-foreground-muted italic whitespace-pre-wrap">
+        <div class="mt-1 mb-1 ms-5 whitespace-pre-wrap break-words text-[13px] leading-[1.55] text-foreground-muted">
           {props.content}
         </div>
       </Show>

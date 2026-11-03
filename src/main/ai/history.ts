@@ -1,7 +1,6 @@
 import type {
   AssistantContent,
   ModelMessage,
-  ReasoningPart,
   TextPart,
   ToolCallPart,
   ToolResultPart
@@ -11,6 +10,7 @@ import type { MessagePart } from '../../shared/ai'
 import type { SessionMessage } from '../services/session.service'
 
 type AssistantParts = Extract<AssistantContent, unknown[]>
+type AssistantReasoningPart = Extract<AssistantParts[number], { type: 'reasoning' }>
 
 /**
  * Converts the persisted transcript into AI SDK messages.
@@ -56,7 +56,7 @@ export function toModelMessages(messages: SessionMessage[]): ModelMessage[] {
             type: 'reasoning',
             text: part.text,
             ...(part.providerMetadata
-              ? { providerOptions: part.providerMetadata as ReasoningPart['providerOptions'] }
+              ? { providerOptions: part.providerMetadata as AssistantReasoningPart['providerOptions'] }
               : {})
           })
         }

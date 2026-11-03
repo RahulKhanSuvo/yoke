@@ -5,6 +5,8 @@ export type ProviderId = 'openai' | 'google' | 'anthropic'
 export interface ModelInfo {
   id: string
   name: string
+  /** Approximate context window in tokens, used for the session usage ring. */
+  contextWindow?: number
 }
 
 export interface ProviderInfo {
@@ -97,11 +99,20 @@ export interface ChatStreamPart {
   part: MessagePart
 }
 
+/** Token counts reported by the provider for one assistant turn. */
+export interface AgentUsage {
+  inputTokens: number
+  outputTokens: number
+  reasoningTokens: number
+}
+
 export interface ChatStreamDone {
   requestId: string
   messageId: string
   text: string
   parts: MessagePart[]
+  /** Accumulated provider usage for the turn, so the UI can update its ring. */
+  tokens?: AgentUsage
 }
 
 export interface ChatStreamError {

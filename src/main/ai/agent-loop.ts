@@ -1,6 +1,7 @@
 import { stepCountIs, streamText, type ModelMessage } from 'ai'
 
 import type { AgentId, MessagePart, ProviderId, ToolName } from '../../shared/ai'
+import type { AgentUsage } from '../../shared/ai'
 
 import { systemPrompt } from './agents'
 import { resolveModel } from './model-resolver'
@@ -29,6 +30,8 @@ export interface AgentCallbacks {
 export interface AgentResult {
   text: string
   parts: MessagePart[]
+  /** Provider token usage summed across every step of the loop. */
+  usage: AgentUsage
 }
 
 type ToolPart = Extract<MessagePart, { type: 'tool' }>
@@ -76,6 +79,7 @@ export async function runAgent(
   const reasoningParts = new Map<string, ReasoningPart>()
   let text = ''
   let activeText: TextPart | undefined
+  const usage: AgentUsage = { inputTokens: 0, outputTokens: 0, reasoningTokens: 0 }
 
   for await (const event of result.fullStream) {
     switch (event.type) {
@@ -172,10 +176,18 @@ export async function runAgent(
       case 'error': {
         throw event.error instanceof Error ? event.error : new Error(String(event.error))
       }
+
+      case 'finish': {
+        // Each assistant step reports its usage; the loop may run several.
+        usage.inputTokens += event.totalUsage.inputTokens ?? 0
+        usage.outputTokens += event.totalUsage.outputTokens ?? 0
+        usage.reasoningTokens += event.totalUsage.outputTokenDetails?.reasoningTokens ?? 0
+        break
+      }
     }
   }
 
-  return { text, parts }
+  return { text, parts, usage }
 }
 
 function pushText(parts: MessagePart[]): TextPart {

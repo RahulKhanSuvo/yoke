@@ -16,6 +16,7 @@ import type {
 } from '../../shared/ai'
 import {
   appendSessionMessage,
+  addSessionUsage,
   getSession,
   getSessionMessages,
   updateSession
@@ -179,13 +180,18 @@ export function registerAIHandlers() {
         parts: result.parts
       })
 
+      if (result.usage.inputTokens || result.usage.outputTokens || result.usage.reasoningTokens) {
+        await addSessionUsage(sessionId, result.usage)
+      }
+
       await updateSession(sessionId, { status: 'idle' })
 
       send(event.sender, 'ai:stream:done', {
         requestId,
         messageId: message.id,
         text: result.text,
-        parts: result.parts
+        parts: result.parts,
+        tokens: result.usage
       } satisfies ChatStreamDone)
 
       return { success: true, messageId: message.id }

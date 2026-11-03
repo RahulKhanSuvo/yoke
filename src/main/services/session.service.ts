@@ -83,6 +83,31 @@ export async function updateSession(
   await db.update(sessions).set(values).where(eq(sessions.id, id))
 }
 
+/** Adds a finished turn's provider usage to the session's running totals. */
+export async function addSessionUsage(
+  id: string,
+  usage: { inputTokens: number; outputTokens: number; reasoningTokens: number }
+): Promise<void> {
+  const [current] = await db
+    .select({
+      input: sessions.tokens_input,
+      output: sessions.tokens_output,
+      reasoning: sessions.tokens_reasoning
+    })
+    .from(sessions)
+    .where(eq(sessions.id, id))
+    .limit(1)
+
+  await db
+    .update(sessions)
+    .set({
+      tokens_input: (current?.input ?? 0) + usage.inputTokens,
+      tokens_output: (current?.output ?? 0) + usage.outputTokens,
+      tokens_reasoning: (current?.reasoning ?? 0) + usage.reasoningTokens
+    })
+    .where(eq(sessions.id, id))
+}
+
 export async function deleteSession(id: string): Promise<void> {
   if (typeof id !== 'string' || !id.trim()) {
     throw new Error('Invalid session ID')

@@ -43,7 +43,7 @@ export function ThinkingBlock(props: ThinkingBlockProps): JSX.Element {
       </button>
 
       <Show when={open()}>
-        <div class="mt-1 mb-1 ms-5 whitespace-pre-wrap break-words text-[13px] leading-[1.55] text-foreground-muted">
+        <div class="mt-1 mb-1 ms-5 whitespace-pre-wrap wrap-break-word text-[13px] leading-[1.55] text-foreground-muted">
           {props.content}
         </div>
       </Show>

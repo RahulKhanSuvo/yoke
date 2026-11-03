@@ -7,7 +7,7 @@ import { ResizeHandle } from '@renderer/components/ui/ResizeHandle'
 import { AppSidebar } from './AppSidebar'
 import { useSidebar } from '@renderer/context/sidebar-state'
 
-const DEFAULT_WIDTH = 250
+const DEFAULT_WIDTH = 276
 const MIN_WIDTH = 80
 const MAX_WIDTH = 600
 /** Dragging the handle below this width collapses the sidebar on release. */
@@ -211,7 +211,7 @@ export function AppShell(props: ParentProps) {
         classList={{ 'bg-danger/60': nearCollapse() }}
       />
 
-      <main class="relative min-w-0 overflow-auto rounded-xl border border-[#e3e3e3]">
+      <main class="relative min-w-0 overflow-auto rounded-xl border border-line">
         <Show when={collapsed()}>
           <div class="absolute top-2.5 left-2.5 z-40">
             <IconButton
@@ -227,7 +227,7 @@ export function AppShell(props: ParentProps) {
               }}
               onMouseLeave={cancelToggleDwell}
             >
-              <HugeiconsIcon icon={PanelLeftIcon} size={16} class="text-neutral-400" />
+              <HugeiconsIcon icon={PanelLeftIcon} size={16} class="text-foreground-muted" />
             </IconButton>
           </div>
         </Show>
@@ -240,7 +240,7 @@ export function AppShell(props: ParentProps) {
         <div
           ref={peekPanel}
           aria-hidden={!peeking()}
-          class="absolute inset-y-0 left-0 z-30 overflow-hidden border-r border-line bg-surface shadow-xl transition-transform duration-200 ease-out"
+          class="absolute inset-y-0 left-0 z-30 overflow-hidden border-r border-line bg-surface-soft shadow-xl transition-transform duration-200 ease-out"
           style={{
             width: `${sidebarWidth()}px`,
             transform: peeking() ? 'translateX(0)' : 'translateX(-100%)',

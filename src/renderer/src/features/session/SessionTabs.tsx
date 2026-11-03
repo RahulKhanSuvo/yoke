@@ -1,9 +1,9 @@
 import { createEffect, For, Show, type JSX } from 'solid-js'
 import { HugeiconsIcon } from '@hugeicons/solid-js'
-import Folder01Icon from '@hugeicons/core-free-icons/Folder01Icon'
 import PlusSignIcon from '@hugeicons/core-free-icons/PlusSignIcon'
 import XIcon from '@hugeicons/core-free-icons/XIcon'
 import { IconButton } from '@renderer/components/ui/IconButton'
+import { projectColor } from '@renderer/features/projects/project-color'
 import { pruneSessionTabs, sessionTabs, type SessionTab } from './session-tabs'
 
 type ProjectWithSessions = Awaited<ReturnType<typeof window.api.projects.list>>[number]
@@ -15,26 +15,6 @@ export interface SessionTabsProps {
   onOpen: (tab: SessionTab) => void
   onClose: (sessionId: string) => void
   onNew: () => void
-}
-
-const AVATAR_COLORS = [
-  'bg-amber-100 text-amber-700',
-  'bg-blue-100 text-blue-700',
-  'bg-emerald-100 text-emerald-700',
-  'bg-violet-100 text-violet-700',
-  'bg-rose-100 text-rose-700',
-  'bg-cyan-100 text-cyan-700'
-]
-
-/** Deterministic project color so a project keeps the same avatar between launches. */
-function avatarColor(seed: string): string {
-  let hash = 0
-
-  for (let index = 0; index < seed.length; index += 1) {
-    hash = (hash * 31 + seed.charCodeAt(index)) | 0
-  }
-
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
 }
 
 /**
@@ -69,15 +49,16 @@ export function SessionTabs(props: SessionTabsProps): JSX.Element {
   return (
     <section class="flex flex-col">
       <div class="flex items-center justify-between px-1 pb-1 pt-1">
-        <span class="text-[13px] font-medium tracking-wide text-neutral-500">Sessions</span>
+        <span class="text-[13px] font-medium tracking-wide text-foreground-muted">Sessions</span>
         <IconButton label="New session" class="p-1" onClick={props.onNew}>
-          <HugeiconsIcon icon={PlusSignIcon} size={15} class="text-neutral-600" />
+          <HugeiconsIcon icon={PlusSignIcon} size={15} class="text-foreground-muted" />
         </IconButton>
       </div>
 
-      <div class="flex flex-col gap-0.5">
+      {/* opencode's vertical tab list: 4px gaps, one 45px two-line row per session. */}
+      <div class="flex flex-col gap-1">
         <Show when={sessionTabs().length === 0}>
-          <p class="px-2 py-1.5 text-[12px] text-neutral-400">No open sessions</p>
+          <p class="px-2 py-1.5 text-[12px] text-foreground-muted/70">No open sessions</p>
         </Show>
 
         <For each={sessionTabs()}>
@@ -88,46 +69,50 @@ export function SessionTabs(props: SessionTabsProps): JSX.Element {
 
             return (
               <div
-                class="group/tab flex items-center gap-0.5 rounded-md pr-0.5 transition-colors"
+                class="group/tab relative flex h-[45px] w-full min-w-0 select-none rounded-md transition-colors dark:text-foreground"
                 classList={{
-                  'bg-neutral-200/60 text-neutral-900': active(),
-                  'text-neutral-600 hover:bg-neutral-100': !active()
+                  'bg-surface-mute text-foreground': active(),
+                  'text-foreground-secondary hover:bg-foreground/[0.03]': !active()
                 }}
               >
                 <button
                   type="button"
-                  class="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-1.5 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-300"
+                  class="grid h-full min-w-0 flex-1 cursor-default grid-cols-[16px_minmax(0,1fr)] content-center gap-x-1.5 rounded-md px-1.5 text-left text-[13px] font-medium focus-visible:outline-none"
                   aria-current={active() ? 'page' : undefined}
                   title={`${tab.title} — ${tab.projectName}`}
                   onClick={() => props.onOpen(tab)}
                 >
                   <span
-                    class={`flex size-6 shrink-0 items-center justify-center rounded-[5px] ${avatarColor(tab.projectId)}`}
+                    class={`col-start-1 row-start-1 mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-[4px] text-[9px] font-semibold ${projectColor(tab.projectId)}`}
                   >
-                    <HugeiconsIcon icon={Folder01Icon} size={13} />
+                    {tab.projectName.slice(0, 1).toUpperCase()}
                   </span>
 
-                  <span class="flex min-w-0 flex-1 flex-col">
-                    <span class="truncate text-[12.5px] font-medium leading-4">{tab.title}</span>
-                    <span class="truncate text-[11px] leading-4 text-neutral-400">
-                      {tab.projectName}
-                    </span>
+                  <span class="col-start-2 row-start-1 min-w-0 truncate pr-7 leading-4">
+                    {tab.title}
+                  </span>
+
+                  <span class="col-start-2 row-start-2 min-w-0 truncate text-[12px] font-normal leading-4 text-foreground-muted">
+                    {tab.projectName}
                   </span>
                 </button>
 
-                <Show when={busy()}>
-                  <span
-                    class="size-1.5 shrink-0 animate-pulse rounded-full bg-amber-500"
-                    aria-label="Session is busy"
-                  />
-                </Show>
+                {/* Status sits where the close button appears; the hover swap changes instantly. */}
+                <span class="pointer-events-none absolute inset-y-0 right-1 grid size-5 place-items-center group-hover/tab:opacity-0">
+                  <Show when={busy()}>
+                    <span
+                      class="size-3 animate-spin rounded-full border-[1.5px] border-line border-t-foreground"
+                      aria-label="Session is busy"
+                    />
+                  </Show>
+                </span>
 
                 <IconButton
                   label={`Close ${tab.title}`}
-                  class="p-1 opacity-0 transition-opacity hover:bg-neutral-200/70 focus-visible:opacity-100 group-hover/tab:opacity-100"
+                  class="absolute inset-y-0 right-1 z-10 grid size-5 place-items-center p-0 opacity-0 transition-none focus-visible:opacity-100 group-hover/tab:opacity-100"
                   onClick={() => props.onClose(tab.id)}
                 >
-                  <HugeiconsIcon icon={XIcon} size={12} class="text-neutral-500" />
+                  <HugeiconsIcon icon={XIcon} size={12} class="text-foreground-muted" />
                 </IconButton>
               </div>
             )

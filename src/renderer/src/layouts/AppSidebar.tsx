@@ -2,6 +2,7 @@ import { createResource, createSignal, createUniqueId, onCleanup, onMount, Show 
 import { useLocation, useNavigate } from '@solidjs/router'
 import { HugeiconsIcon } from '@hugeicons/solid-js'
 import {
+  ChevronRightIcon,
   FolderAddIcon,
   PanelLeftIcon,
   SearchIcon as SearchIconData,
@@ -40,6 +41,8 @@ export const AppSidebar = () => {
 
   const [activeProjectId, setActiveProjectId] = createSignal<string>()
   const [busy, setBusy] = createSignal(false)
+  // The whole Projects section collapses behind its header.
+  const [projectsOpen, setProjectsOpen] = createSignal(true)
   const location = useLocation()
 
   // The URL is the source of truth for the active tab, including direct navigation.
@@ -150,10 +153,10 @@ export const AppSidebar = () => {
   }
 
   return (
-    <aside id={id} class="flex h-full w-full flex-col overflow-hidden">
+    <aside id={id} class="flex h-full w-full flex-col overflow-hidden bg-surface-soft">
       <div class="flex h-12 shrink-0 items-center justify-between px-3">
         <NavItem
-          icon={<HugeiconsIcon icon={DashboardSquareAddIcon} size={15} class="text-neutral-400" />}
+          icon={<HugeiconsIcon icon={DashboardSquareAddIcon} size={15} class="text-foreground-muted" />}
           label="Home"
           onClick={() => navigate('/')}
         />
@@ -164,13 +167,13 @@ export const AppSidebar = () => {
           class="p-1"
           onClick={sidebar.toggle}
         >
-          <HugeiconsIcon icon={PanelLeftIcon} size={16} class="text-neutral-400" />
+          <HugeiconsIcon icon={PanelLeftIcon} size={16} class="text-foreground-muted" />
         </IconButton>
       </div>
 
       <div class="flex flex-col gap-0.5 px-2 pt-2">
         <NavItem
-          icon={<HugeiconsIcon icon={SearchIconData} size={15} class="text-neutral-400" />}
+          icon={<HugeiconsIcon icon={SearchIconData} size={15} class="text-foreground-muted" />}
           label="Search"
           shortcut={SEARCH_SHORTCUT}
         />
@@ -189,53 +192,69 @@ export const AppSidebar = () => {
         />
 
         <div class="mt-4 flex shrink-0 items-center justify-between px-1 pb-1">
-          <span class="text-[13px] font-medium tracking-wide text-neutral-500">Projects</span>
+          <button
+            type="button"
+            class="flex min-w-0 flex-1 items-center gap-0.5 text-left text-[13px] font-medium text-foreground-muted"
+            aria-expanded={projectsOpen()}
+            onClick={() => setProjectsOpen(!projectsOpen())}
+          >
+            <HugeiconsIcon
+              icon={ChevronRightIcon}
+              size={13}
+              class={`shrink-0 text-foreground-muted/70 transition-transform duration-150 ${
+                projectsOpen() ? 'rotate-90' : ''
+              }`}
+            />
+            <span class="tracking-wide">Projects</span>
+          </button>
           <IconButton
             label="Add project"
             class="p-1"
             disabled={busy()}
             onClick={() => void addProject()}
           >
-            <HugeiconsIcon icon={FolderAddIcon} size={15} class="text-neutral-600" />
+            <HugeiconsIcon icon={FolderAddIcon} size={15} class="text-foreground-muted" />
           </IconButton>
         </div>
 
-        <Show when={projects.error}>
-          <div class="mx-1 mt-1 rounded-md border border-dashed border-red-200 px-3 py-2 text-center">
-            <p class="text-[12px] text-red-500">Couldn't load projects</p>
-          </div>
-        </Show>
+        <Show when={projectsOpen()}>
+          <Show when={projects.error}>
+            <div class="mx-1 mt-1 rounded-md border border-dashed border-danger/30 px-3 py-2 text-center">
+              <p class="text-[12px] text-danger">Couldn't load projects</p>
+            </div>
+          </Show>
 
-        <Show when={projects.loading && !projects()}>
-          <p class="mx-1 mt-1 px-2 text-[12px] text-neutral-400">Loading…</p>
-        </Show>
+          <Show when={projects.loading && !projects()}>
+            <p class="mx-1 mt-1 px-2 text-[12px] text-foreground-muted/70">Loading…</p>
+          </Show>
 
-        <Show when={projects()?.length === 0}>
-          <div class="mx-1 mt-1 rounded-md border border-dashed border-neutral-200 px-3 py-2 text-center">
-            <p class="text-[12px] text-neutral-500">No projects yet</p>
-          </div>
-        </Show>
+          <Show when={projects()?.length === 0}>
+            <div class="mx-1 mt-1 rounded-md border border-dashed border-line px-3 py-2 text-center">
+              <p class="text-[12px] text-foreground-muted">No projects yet</p>
+            </div>
+          </Show>
 
-        <ProjectTree
-          projects={projects() ?? []}
-          activeProjectId={activeProjectId()}
-          activeSessionId={activeSessionId()}
-          onRefresh={refetch}
-          onSelectProject={(project) => {
-            setActiveProjectId(project.id)
-          }}
-          onSelectSession={(session) => {
-            setActiveProjectId(session.projectId)
-            navigate(`/sessions/${session.id}`)
-          }}
-          onDeleteSession={(session) => void removeSession(session.id)}
-          onRemoveProject={(project) => void removeProject(project.id)}
-        />
+          <ProjectTree
+            projects={projects() ?? []}
+            activeProjectId={activeProjectId()}
+            activeSessionId={activeSessionId()}
+            onRefresh={refetch}
+            onSelectProject={(project) => {
+              setActiveProjectId(project.id)
+            }}
+            onSelectSession={(session) => {
+              setActiveProjectId(session.projectId)
+              navigate(`/sessions/${session.id}`)
+            }}
+            onDeleteSession={(session) => void removeSession(session.id)}
+            onRemoveProject={(project) => void removeProject(project.id)}
+          />
+        </Show>
       </div>
 
-      <div class="shrink-0 border-t border-neutral-200/70 p-2">
+      <div class="shrink-0 border-t border-line p-2">
         <NavItem
-          icon={<HugeiconsIcon icon={SettingsIconData} size={15} class="text-neutral-400" />}
+          icon={<HugeiconsIcon icon={SettingsIconData} size={15} class="text-foreground-muted" />}
           label="Settings"
           onClick={() => navigate('/settings')}
         />

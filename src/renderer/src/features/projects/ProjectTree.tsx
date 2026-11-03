@@ -69,11 +69,7 @@ function ProjectNode(props: ProjectNodeProps): JSX.Element {
   return (
     <div class="flex flex-col">
       <div
-        class="group/project flex items-center gap-0.5 rounded-md pr-0.5 transition-colors"
-        classList={{
-          'bg-neutral-200/60 text-neutral-900': props.active,
-          'text-neutral-600 hover:bg-neutral-100': !props.active
-        }}
+        class="group/project flex items-center gap-0.5 rounded-md pr-0.5 transition-colors text-foreground hover:bg-foreground/[0.03]"
       >
         <button
           type="button"
@@ -88,17 +84,17 @@ function ProjectNode(props: ProjectNodeProps): JSX.Element {
           <HugeiconsIcon
             icon={ChevronRightIcon}
             size={13}
-            class={`shrink-0 text-neutral-400 transition-transform duration-150 ${
+            class={`shrink-0 text-foreground-muted/70 transition-transform duration-150 ${
               props.expanded ? 'rotate-90' : ''
             }`}
           />
-          <HugeiconsIcon icon={Folder01Icon} size={15} class="shrink-0 text-neutral-400" />
+          <HugeiconsIcon icon={Folder01Icon} size={15} class="shrink-0 text-foreground-muted" />
           <span class="truncate">{props.project.name}</span>
         </button>
 
         <DropdownMenu>
           <DropdownMenuTrigger
-            class="flex size-6 shrink-0 items-center justify-center rounded-md text-neutral-400 opacity-0 transition hover:bg-neutral-200/70 hover:text-neutral-700 focus-visible:opacity-100 focus-visible:outline-none group-hover/project:opacity-100 data-expanded:opacity-100"
+            class="flex size-6 shrink-0 items-center justify-center rounded-md text-foreground-muted opacity-0 transition hover:bg-surface-mute hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none group-hover/project:opacity-100 data-expanded:opacity-100"
             aria-label={`${props.project.name} options`}
             disabled={creating()}
           >
@@ -107,7 +103,7 @@ function ProjectNode(props: ProjectNodeProps): JSX.Element {
 
           <DropdownMenuContent class="min-w-44">
             <DropdownMenuItem class="text-[12.5px]" onSelect={() => void addSession()}>
-              <HugeiconsIcon icon={Add01Icon} size={14} class="text-neutral-400" />
+              <HugeiconsIcon icon={Add01Icon} size={14} class="text-foreground-muted" />
               New session
             </DropdownMenuItem>
 
@@ -127,7 +123,7 @@ function ProjectNode(props: ProjectNodeProps): JSX.Element {
       <Show when={props.expanded}>
         <div class="mb-1 flex flex-col gap-0.5 pl-5.5">
           <Show when={props.project.sessions.length === 0}>
-            <p class="px-2 py-1 text-[12px] text-neutral-400">No sessions yet</p>
+            <p class="px-2 py-1 text-[12px] text-foreground-muted/70">No sessions yet</p>
           </Show>
 
           <For each={props.project.sessions}>
@@ -135,27 +131,32 @@ function ProjectNode(props: ProjectNodeProps): JSX.Element {
               <div
                 class="group/session flex items-center gap-0.5 rounded-md pr-0.5 transition-colors"
                 classList={{
-                  'bg-neutral-200/60 text-neutral-900': props.activeSessionId === session.id,
-                  'text-neutral-600 hover:bg-neutral-100': props.activeSessionId !== session.id
+                  'bg-surface-mute text-foreground': props.activeSessionId === session.id,
+                  'text-foreground-secondary hover:bg-foreground/[0.03]':
+                    props.activeSessionId !== session.id
                 }}
               >
                 <button
                   type="button"
-                  class="flex min-w-0 flex-1 items-center gap-2 rounded-md py-1 pl-2 pr-1 text-left text-[12.5px]"
+                  class="flex min-w-0 flex-1 items-center gap-2 rounded-md py-1.5 pl-2 pr-1 text-left text-[12.5px]"
                   title={session.directory}
                   onClick={() => props.onSelectSession(session)}
                 >
                   <HugeiconsIcon
                     icon={BubbleChatIcon}
                     size={13}
-                    class="shrink-0 text-neutral-400"
+                    class={`shrink-0 ${
+                      props.activeSessionId === session.id
+                        ? 'text-primary'
+                        : 'text-foreground-muted'
+                    }`}
                   />
                   <span class="truncate">{session.title}</span>
                 </button>
 
                 <IconButton
                   label={`Delete ${session.title}`}
-                  class="p-1 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 group-hover/session:opacity-100"
+                  class="p-1 opacity-0 transition-opacity hover:bg-danger/10 hover:text-danger focus-visible:opacity-100 group-hover/session:opacity-100"
                   onClick={() => void props.onDeleteSession(session)}
                 >
                   <HugeiconsIcon icon={Delete02Icon} size={12} />

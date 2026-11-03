@@ -57,9 +57,7 @@ export default function SessionView(): JSX.Element {
 
     if (!data) return
 
-    setTokens(
-      (data.tokens_input ?? 0) + (data.tokens_output ?? 0) + (data.tokens_reasoning ?? 0)
-    )
+    setTokens((data.tokens_input ?? 0) + (data.tokens_output ?? 0) + (data.tokens_reasoning ?? 0))
   })
 
   const resetStream = () => {
@@ -105,9 +103,7 @@ export default function SessionView(): JSX.Element {
     setStreamingParts((previous) => {
       const last = previous[previous.length - 1]
 
-      return last?.type === 'reasoning'
-        ? [...previous.slice(0, -1), part]
-        : [...previous, part]
+      return last?.type === 'reasoning' ? [...previous.slice(0, -1), part] : [...previous, part]
     })
   }
 
@@ -380,7 +376,10 @@ export default function SessionView(): JSX.Element {
         </span>
 
         <span class="ml-auto flex shrink-0 items-center gap-2 pl-3">
-          <UsageRing tokens={tokens} contextWindow={() => aiStore.selectedModelInfo()?.model.contextWindow} />
+          <UsageRing
+            tokens={tokens}
+            contextWindow={() => aiStore.selectedModelInfo()?.model.contextWindow}
+          />
         </span>
       </header>
 
@@ -388,7 +387,7 @@ export default function SessionView(): JSX.Element {
         when={hasConversation()}
         fallback={
           <div class="flex min-h-0 flex-1 flex-col items-center justify-center px-3 pb-24">
-            <div class="flex w-full max-w-[744px] flex-col gap-3">
+            <div class="flex w-full max-w-186 flex-col gap-3">
               {composer()}
               <ConnectHint />
               <Show when={error()}>
@@ -400,7 +399,7 @@ export default function SessionView(): JSX.Element {
       >
         <div class="flex min-h-0 flex-1 flex-col">
           <div ref={scrollArea} class="min-h-0 flex-1 overflow-y-auto">
-            <div class="mx-auto flex w-full max-w-[744px] flex-col px-6 pt-4 pb-6">
+            <div class="mx-auto flex w-full max-w-186 flex-col px-6 pt-4 pb-6">
               <For each={messages()}>
                 {(message, index) => (
                   <div class={rowSpacing(index())}>
@@ -440,7 +439,7 @@ export default function SessionView(): JSX.Element {
           </div>
 
           <div class="shrink-0 px-3 pb-4">
-            <div class="mx-auto flex w-full max-w-[744px] flex-col gap-3">
+            <div class="mx-auto flex w-full max-w-186 flex-col gap-3">
               {composer()}
               <ConnectHint />
             </div>

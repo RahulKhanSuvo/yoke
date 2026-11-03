@@ -34,7 +34,10 @@ const TOOL_META: Record<ToolName, ToolMeta> = {
 
 /** The one-line hint opencode shows next to a tool name. */
 export function toolSummary(part: Extract<MessagePart, { type: 'tool' }>): string {
-  const input = (part.input && typeof part.input === 'object' ? part.input : {}) as Record<string, unknown>
+  const input = (part.input && typeof part.input === 'object' ? part.input : {}) as Record<
+    string,
+    unknown
+  >
   const path = typeof input.path === 'string' ? input.path : undefined
 
   switch (part.name) {
@@ -78,10 +81,15 @@ export function ToolCallCard(props: ToolCallCardProps): JSX.Element {
 
   const meta = () => TOOL_META[props.part.name] ?? { label: props.part.name, icon: AiSparklesIcon }
   const input = () =>
-    (props.part.input && typeof props.part.input === 'object' ? props.part.input : {}) as Record<string, unknown>
+    (props.part.input && typeof props.part.input === 'object' ? props.part.input : {}) as Record<
+      string,
+      unknown
+    >
   const summary = createMemo(() => toolSummary(props.part))
   const hasDetails = () =>
-    Boolean(props.part.output || props.part.error) || props.part.name === 'edit' || props.part.name === 'write'
+    Boolean(props.part.output || props.part.error) ||
+    props.part.name === 'edit' ||
+    props.part.name === 'write'
 
   const toggle = () => {
     if (!hasDetails()) return
@@ -146,7 +154,7 @@ function ToolOutput(props: {
     <div class="group/output mt-1 mb-1 ms-5 overflow-hidden rounded-md border border-line/70 bg-surface-soft">
       <div class="relative max-h-80 overflow-auto">
         <Show when={props.part.name === 'bash'}>
-          <pre class="px-3 py-2 font-mono text-[12px] leading-[1.55] whitespace-pre-wrap break-words text-foreground-secondary">
+          <pre class="px-3 py-2 font-mono text-[12px] leading-[1.55] whitespace-pre-wrap wrap-break-word text-foreground-secondary">
             <span class="select-none text-foreground-muted/60">$ </span>
             {String(props.input.command ?? '')}
             {props.part.output ? `\n${props.part.output}` : ''}
@@ -161,25 +169,25 @@ function ToolOutput(props: {
         </Show>
 
         <Show when={props.part.name === 'write'}>
-          <pre class="px-3 py-2 font-mono text-[12px] leading-[1.55] whitespace-pre-wrap break-words text-foreground-secondary">
+          <pre class="px-3 py-2 font-mono text-[12px] leading-[1.55] whitespace-pre-wrap wrap-break-word text-foreground-secondary">
             {typeof props.input.content === 'string' ? props.input.content : ''}
           </pre>
         </Show>
 
         <Show when={!['bash', 'edit', 'write'].includes(props.part.name)}>
-          <pre class="px-3 py-2 font-mono text-[12px] leading-[1.55] whitespace-pre-wrap break-words text-foreground-secondary">
+          <pre class="px-3 py-2 font-mono text-[12px] leading-[1.55] whitespace-pre-wrap wrap-break-word text-foreground-secondary">
             {props.part.output ?? props.part.error ?? 'No output'}
           </pre>
         </Show>
 
         <Show when={props.part.name === 'edit' && props.part.output}>
-          <pre class="border-t border-line/60 px-3 py-2 font-mono text-[12px] leading-[1.55] whitespace-pre-wrap break-words text-foreground-muted">
+          <pre class="border-t border-line/60 px-3 py-2 font-mono text-[12px] leading-[1.55] whitespace-pre-wrap wrap-break-word text-foreground-muted">
             {props.part.output}
           </pre>
         </Show>
 
         <Show when={props.part.status === 'error' && props.part.error}>
-          <pre class="border-t border-danger/20 bg-danger/5 px-3 py-2 font-mono text-[12px] leading-[1.55] whitespace-pre-wrap break-words text-danger">
+          <pre class="border-t border-danger/20 bg-danger/5 px-3 py-2 font-mono text-[12px] leading-[1.55] whitespace-pre-wrap wrap-break-word text-danger">
             {props.part.error}
           </pre>
         </Show>

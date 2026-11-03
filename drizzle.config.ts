@@ -5,6 +5,6 @@ export default defineConfig({
   out: './src/main/database/migrations',
   dialect: 'sqlite',
   dbCredentials: {
-    url: './yoke.db'
+    url: '/home/rahul/.config/yoke/yoke.db'
   }
 })

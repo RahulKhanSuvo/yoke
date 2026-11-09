@@ -9,16 +9,33 @@ import {
   type JSX
 } from 'solid-js'
 import { useNavigate, useParams, useSearchParams } from '@solidjs/router'
+import { makeEventListener } from '@solid-primitives/event-listener'
 import { HugeiconsIcon } from '@hugeicons/solid-js'
 import Folder01Icon from '@hugeicons/core-free-icons/Folder01Icon'
+import PanelRightIcon from '@hugeicons/core-free-icons/PanelRightIcon'
 import { ChatComposer } from '@renderer/features/chat/ChatComposer'
 import { ChatMessageRow, type ChatMessageView } from '@renderer/features/chat/ChatMessageRow'
+import { IconButton } from '@renderer/components/ui/IconButton'
+import {
+  ReviewSidePanel,
+  markReviewTabOpen
+} from '@renderer/features/session/review/ReviewSidePanel'
 import { UsageRing } from '@renderer/features/session/UsageRing'
 import { aiStore } from '@renderer/features/ai/ai-store'
 import { projectColor } from '@renderer/features/projects/project-color'
 import { notifyProjectsChanged } from '@renderer/features/projects/project-events'
 import { closeSessionTab, openSessionTab } from '@renderer/features/session/session-tabs'
 import type { MessagePart } from '@shared/ai'
+
+const REVIEW_OPEN_KEY = 'yoke.review-open'
+
+function readReviewOpen(): boolean {
+  try {
+    return localStorage.getItem(REVIEW_OPEN_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
 
 export default function SessionView(): JSX.Element {
   const params = useParams()
@@ -43,6 +60,17 @@ export default function SessionView(): JSX.Element {
   const [error, setError] = createSignal<string>()
   /** Tokens accumulated on the session, for the header's context ring. */
   const [tokens, setTokens] = createSignal(0)
+  const [reviewOpen, setReviewOpen] = createSignal(readReviewOpen())
+  /** Bumped after a turn so the Review panel reloads the files the agent touched. */
+  const [reviewRefresh, setReviewRefresh] = createSignal(0)
+
+  createEffect(() => {
+    try {
+      localStorage.setItem(REVIEW_OPEN_KEY, String(reviewOpen()))
+    } catch {
+      // Persisting the panel state is best-effort.
+    }
+  })
 
   let scrollArea: HTMLDivElement | undefined
   let activeRequestId: string | undefined
@@ -211,6 +239,8 @@ export default function SessionView(): JSX.Element {
         return previous + usage.inputTokens + usage.outputTokens + usage.reasoningTokens
       })
       void refetchSession()
+      // The turn may have edited files in the working tree.
+      setReviewRefresh((value) => value + 1)
       // The session title and ordering may have changed; refresh the sidebar.
       notifyProjectsChanged()
     })
@@ -228,6 +258,7 @@ export default function SessionView(): JSX.Element {
 
       // The main process persists partial output before reporting the error.
       void refetchHistory()
+      setReviewRefresh((value) => value + 1)
     })
 
     onCleanup(() => {
@@ -235,6 +266,17 @@ export default function SessionView(): JSX.Element {
       offPart()
       offDone()
       offError()
+    })
+
+    // Open the side panel straight to the Review tab, like opencode's review.toggle.
+    makeEventListener(document, 'keydown', (event) => {
+      if (!event.ctrlKey || !event.altKey || event.metaKey || event.shiftKey) return
+
+      if (event.key.toLowerCase() !== 'r' || event.defaultPrevented) return
+
+      event.preventDefault()
+      markReviewTabOpen()
+      setReviewOpen(true)
     })
   })
 
@@ -380,72 +422,99 @@ export default function SessionView(): JSX.Element {
             tokens={tokens}
             contextWindow={() => aiStore.selectedModelInfo()?.model.contextWindow}
           />
+          <IconButton
+            label={reviewOpen() ? 'Hide review panel' : 'Show review panel'}
+            aria-pressed={reviewOpen()}
+            class="p-1 text-foreground-muted hover:bg-surface-mute hover:text-foreground"
+            onClick={() => setReviewOpen((value) => !value)}
+          >
+            <HugeiconsIcon
+              icon={PanelRightIcon}
+              size={16}
+              class={reviewOpen() ? 'text-foreground' : undefined}
+            />
+          </IconButton>
         </span>
       </header>
 
-      <Show
-        when={hasConversation()}
-        fallback={
-          <div class="flex min-h-0 flex-1 flex-col items-center justify-center px-3 pb-24">
-            <div class="flex w-full max-w-186 flex-col gap-3">
-              {composer()}
-              <ConnectHint />
-              <Show when={error()}>
-                {(message) => <p class="px-1 text-[12.5px] text-danger">{message()}</p>}
-              </Show>
-            </div>
-          </div>
-        }
-      >
-        <div class="flex min-h-0 flex-1 flex-col">
-          <div ref={scrollArea} class="min-h-0 flex-1 overflow-y-auto">
-            <div class="mx-auto flex w-full max-w-186 flex-col px-6 pt-4 pb-6">
-              <For each={messages()}>
-                {(message, index) => (
-                  <div class={rowSpacing(index())}>
-                    <ChatMessageRow message={message} />
-                  </div>
-                )}
-              </For>
-
-              <Show when={busy()}>
-                <div class={messages().length > 0 ? 'mt-4' : undefined}>
-                  <ChatMessageRow
-                    message={{
-                      id: 'stream',
-                      role: 'assistant',
-                      text: streamingText(),
-                      parts: streamingParts()
-                    }}
-                    streaming
-                  />
+      <div class="flex min-h-0 flex-1">
+        <div class="flex min-w-0 flex-1 flex-col">
+          <Show
+            when={hasConversation()}
+            fallback={
+              <div class="flex min-h-0 flex-1 flex-col items-center justify-center px-3 pb-24">
+                <div class="flex w-full max-w-186 flex-col gap-3">
+                  {composer()}
+                  <ConnectHint />
+                  <Show when={error()}>
+                    {(message) => <p class="px-1 text-[12.5px] text-danger">{message()}</p>}
+                  </Show>
                 </div>
-              </Show>
+              </div>
+            }
+          >
+            <div class="flex min-h-0 flex-1 flex-col">
+              <div ref={scrollArea} class="min-h-0 flex-1 overflow-y-auto">
+                <div class="mx-auto flex w-full max-w-186 flex-col px-6 pt-4 pb-6">
+                  <For each={messages()}>
+                    {(message, index) => (
+                      <div class={rowSpacing(index())}>
+                        <ChatMessageRow message={message} />
+                      </div>
+                    )}
+                  </For>
 
-              <Show when={showWorking()}>
-                <div class="mt-1 flex h-9 items-center gap-2 text-[13px] font-[530] leading-[1.4] tracking-[-0.04px]">
-                  <span class="shimmer-text">Working</span>
+                  <Show when={busy()}>
+                    <div class={messages().length > 0 ? 'mt-4' : undefined}>
+                      <ChatMessageRow
+                        message={{
+                          id: 'stream',
+                          role: 'assistant',
+                          text: streamingText(),
+                          parts: streamingParts()
+                        }}
+                        streaming
+                      />
+                    </div>
+                  </Show>
+
+                  <Show when={showWorking()}>
+                    <div class="mt-1 flex h-9 items-center gap-2 text-[13px] font-[530] leading-[1.4] tracking-[-0.04px]">
+                      <span class="shimmer-text">Working</span>
+                    </div>
+                  </Show>
+
+                  <Show when={error()}>
+                    {(message) => (
+                      <div class="mt-4 rounded-lg border border-danger/20 bg-danger/5 px-3 py-2 text-[12.5px] text-danger">
+                        {message()}
+                      </div>
+                    )}
+                  </Show>
                 </div>
-              </Show>
+              </div>
 
-              <Show when={error()}>
-                {(message) => (
-                  <div class="mt-4 rounded-lg border border-danger/20 bg-danger/5 px-3 py-2 text-[12.5px] text-danger">
-                    {message()}
-                  </div>
-                )}
-              </Show>
+              <div class="shrink-0 px-3 pb-4">
+                <div class="mx-auto flex w-full max-w-186 flex-col gap-3">
+                  {composer()}
+                  <ConnectHint />
+                </div>
+              </div>
             </div>
-          </div>
-
-          <div class="shrink-0 px-3 pb-4">
-            <div class="mx-auto flex w-full max-w-186 flex-col gap-3">
-              {composer()}
-              <ConnectHint />
-            </div>
-          </div>
+          </Show>
         </div>
-      </Show>
+
+        {/* The Review pane mirrors opencode's right-side session panel. */}
+        <Show when={reviewOpen() ? session()?.directory : undefined}>
+          {(directory) => (
+            <ReviewSidePanel
+              directory={directory()}
+              refreshKey={reviewRefresh()}
+              onClose={() => setReviewOpen(false)}
+            />
+          )}
+        </Show>
+      </div>
     </div>
   )
 

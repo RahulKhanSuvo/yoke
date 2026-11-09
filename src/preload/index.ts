@@ -3,11 +3,13 @@ import { electronAPI } from '@electron-toolkit/preload'
 import { projectApi } from './api/project.api'
 import { sessionApi } from './api/session.api'
 import { aiApi } from './api/ai.api'
+import { reviewApi } from './api/review.api'
 
 export const api = {
   projects: projectApi,
   sessions: sessionApi,
-  ai: aiApi
+  ai: aiApi,
+  review: reviewApi
 }
 if (process.contextIsolated) {
   try {

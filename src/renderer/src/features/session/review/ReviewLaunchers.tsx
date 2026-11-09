@@ -8,7 +8,7 @@ function KeyChips(props: { keys: string[] }): JSX.Element {
     <span class="flex shrink-0 items-center gap-1" aria-hidden="true">
       <For each={props.keys}>
         {(key) => (
-          <span class="rounded-[4px] border border-line/70 bg-surface px-1.5 py-0.5 text-[10px] font-medium tracking-[0.04px] text-foreground-muted">
+          <span class="rounded-sm border border-line/70 bg-surface px-1.5 py-0.5 text-[10px] font-medium tracking-[0.04px] text-foreground-muted">
             {key}
           </span>
         )}

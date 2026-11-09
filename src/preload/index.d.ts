@@ -11,6 +11,7 @@ import type {
   ProviderId,
   ProviderStatus
 } from '../shared/ai'
+import type { ReviewFileDiff, ReviewSummary } from '../shared/review'
 
 export type Project = typeof projects.$inferSelect
 export type Session = typeof sessions.$inferSelect
@@ -47,6 +48,12 @@ export interface PreloadApi {
     onPart: (listener: (payload: ChatStreamPart) => void) => () => void
     onDone: (listener: (payload: ChatStreamDone) => void) => () => void
     onError: (listener: (payload: ChatStreamError) => void) => () => void
+  }
+  review: {
+    /** Summarize the working tree changes in a session directory. */
+    summary: (directory: string) => Promise<ReviewSummary>
+    /** Read a single changed file's unified diff. */
+    file: (directory: string, path: string) => Promise<ReviewFileDiff | null>
   }
 }
 

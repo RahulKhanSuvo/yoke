@@ -4,8 +4,10 @@ import { PROVIDERS, findModel, isProviderId } from '../ai/catalog'
 import { credentialService } from '../ai/credential.service'
 import { runAgent } from '../ai/agent-loop'
 import { toModelMessages } from '../ai/history'
+import { getApprovalGate } from '../ai/approval.service'
 import { isAgentId } from '../../shared/agents'
 import type {
+  ApprovalResponse,
   ChatSendRequest,
   ChatStreamChunk,
   ChatStreamDone,
@@ -23,6 +25,22 @@ import {
 } from '../services/session.service'
 
 const activeRequests = new Map<string, AbortController>()
+/** The approval gate handling each in-flight chat request. */
+const requestGates = new Map<string, ReturnType<typeof getApprovalGate>>()
+
+function isApprovalResponse(value: unknown): value is ApprovalResponse {
+  if (typeof value !== 'object' || value === null) return false
+
+  const candidate = value as Record<string, unknown>
+
+  return (
+    typeof candidate.requestId === 'string' &&
+    typeof candidate.approvalId === 'string' &&
+    (candidate.decision === 'allow' ||
+      candidate.decision === 'allow-session' ||
+      candidate.decision === 'deny')
+  )
+}
 
 function send(webContents: WebContents, channel: string, payload: unknown): void {
   if (!webContents.isDestroyed()) webContents.send(channel, payload)
@@ -114,6 +132,13 @@ export function registerAIHandlers() {
     const controller = new AbortController()
     activeRequests.set(requestId, controller)
 
+    const approvalGate = getApprovalGate(sessionId)
+    requestGates.set(requestId, approvalGate)
+    // Tools only see the command; this turn's sender and id stay bound here.
+    const approval = {
+      request: (command: string) => approvalGate.request(event.sender, requestId, command)
+    }
+
     // Persist the user's turn before calling the provider, so the transcript survives errors.
     await appendSessionMessage(sessionId, 'user', { text: prompt.trim() })
 
@@ -138,7 +163,8 @@ export function registerAIHandlers() {
           agentId,
           directory: session.directory,
           messages: history,
-          signal: controller.signal
+          signal: controller.signal,
+          approval
         },
         {
           onText: (delta) => {
@@ -222,6 +248,8 @@ export function registerAIHandlers() {
 
       return { success: false }
     } finally {
+      approvalGate.cancelAll()
+      requestGates.delete(requestId)
       activeRequests.delete(requestId)
     }
   })
@@ -229,6 +257,15 @@ export function registerAIHandlers() {
   ipcMain.handle('ai:chat:cancel', (_event, requestId: unknown) => {
     if (typeof requestId !== 'string') return
 
+    // Deny any approval the agent is waiting on so the turn unwinds cleanly.
+    requestGates.get(requestId)?.cancelAll()
     activeRequests.get(requestId)?.abort()
+  })
+
+  // The renderer answers an approval dialog raised by the bash tool.
+  ipcMain.handle('ai:approval:respond', (_event, response: unknown) => {
+    if (!isApprovalResponse(response)) throw new Error('Invalid approval response')
+
+    requestGates.get(response.requestId)?.respond(response)
   })
 }

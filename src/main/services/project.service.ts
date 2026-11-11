@@ -7,6 +7,32 @@ import { projects } from '../database/schema'
 
 type Project = typeof projects.$inferSelect
 
+/**
+ * True when the directory belongs to a registered project. Review IPC uses
+ * this so a compromised renderer cannot diff arbitrary folders.
+ */
+export async function isProjectDirectory(directory: string): Promise<boolean> {
+  if (typeof directory !== 'string' || !directory.trim() || !path.isAbsolute(directory)) {
+    return false
+  }
+
+  const resolved = path.resolve(directory)
+
+  const direct = await db.query.projects.findFirst({ where: eq(projects.rootPath, resolved) })
+
+  if (direct) return true
+
+  // Symlinked paths do not match the stored realpath; compare on the filesystem.
+  try {
+    const real = await realpath(resolved)
+    const rows = await db.select({ rootPath: projects.rootPath }).from(projects)
+
+    return rows.some((row) => row.rootPath === real)
+  } catch {
+    return false
+  }
+}
+
 export async function createProject(rootPath: string): Promise<Project> {
   // 1. Validate input
   if (typeof rootPath !== 'string' || !rootPath.trim()) {

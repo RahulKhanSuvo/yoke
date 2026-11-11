@@ -1,9 +1,11 @@
 import { eq } from 'drizzle-orm'
-import { realpath, readFile, stat } from 'node:fs/promises'
+import { realpath, readFile, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
+import { app, dialog, type BrowserWindow } from 'electron'
 
 import { db } from '../database'
 import { projects } from '../database/schema'
+import { getSessionMessages, getProjectSessions } from './session.service'
 
 import type { ProjectKind } from '../../shared/project-kind'
 
@@ -156,4 +158,88 @@ export async function deleteProject(id: string): Promise<void> {
   }
 
   await db.delete(projects).where(eq(projects.id, id))
+}
+
+export async function renameProject(id: string, name: string): Promise<Project> {
+  const trimmed = typeof name === 'string' ? name.trim() : ''
+
+  if (typeof id !== 'string' || !id.trim() || !trimmed) {
+    throw new Error('Invalid project rename')
+  }
+
+  if (trimmed.length > 100) {
+    throw new Error('Project name is too long')
+  }
+
+  const [updated] = await db
+    .update(projects)
+    .set({ name: trimmed })
+    .where(eq(projects.id, id))
+    .returning()
+
+  if (!updated) {
+    throw new Error('Project not found')
+  }
+
+  return updated
+}
+
+/** The JSON shape written by an export. */
+interface ProjectExport {
+  exportedAt: number
+  project: { name: string; rootPath: string; kind: ProjectKind }
+  sessions: Array<{
+    id: string
+    title: string
+    time_created: number
+    time_updated: number
+    messages: Array<{ type: string; data: unknown }>
+  }>
+}
+
+/** Builds the project's export JSON, asks where to save it, and writes it. Returns the path or null. */
+export async function exportProject(
+  projectId: string,
+  win: BrowserWindow
+): Promise<string | null> {
+  if (typeof projectId !== 'string' || !projectId.trim()) {
+    throw new Error('Invalid project export')
+  }
+
+  const project = await db.query.projects.findFirst({ where: eq(projects.id, projectId) })
+
+  if (!project) {
+    throw new Error('Project not found')
+  }
+
+  const sessionRows = await getProjectSessions(projectId)
+
+  const exportData: ProjectExport = {
+    exportedAt: Date.now(),
+    project: { name: project.name, rootPath: project.rootPath, kind: await detectProjectKind(project.rootPath) },
+    sessions: await Promise.all(
+      sessionRows.map(async (session) => ({
+        id: session.id,
+        title: session.title,
+        time_created: session.time_created,
+        time_updated: session.time_updated,
+        messages: (await getSessionMessages(session.id)).map((message) => ({
+          type: message.type,
+          data: message.data
+        }))
+      }))
+    )
+  }
+
+  const result = await dialog.showSaveDialog(win, {
+    title: 'Export project',
+    defaultPath: path.join(app.getPath('documents'), `${project.name}.yoke.json`),
+    filters: [{ name: 'JSON', extensions: ['json'] }]
+  })
+
+  if (result.canceled || !result.filePath) return null
+
+  await writeFile(result.filePath, JSON.stringify(exportData, null, 2), 'utf8')
+
+  return result.filePath
 }

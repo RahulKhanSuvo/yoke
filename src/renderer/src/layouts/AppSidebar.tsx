@@ -134,6 +134,19 @@ export const AppSidebar = () => {
     notifyProjectsChanged()
   }
 
+  /** Renames a project and refreshes the sidebar and home. */
+  const renameProject = async (project: { id: string }, name: string) => {
+    await window.api.projects.rename(project.id, name)
+
+    await refetch()
+    notifyProjectsChanged()
+  }
+
+  /** Exports the project's sessions to a JSON file the user picked. */
+  const exportProject = (project: { id: string }) => {
+    void window.api.projects.export(project.id)
+  }
+
   const removeProject = async (projectId: string) => {
     const wasActive = activeProjectId() === projectId
 
@@ -213,6 +226,8 @@ export const AppSidebar = () => {
           onOpenSession={(_project, session) => navigate(`/sessions/${session.id}`)}
           onDeleteSession={(_project, session) => void deleteSession(session.id)}
           onRemoveProject={(project) => void removeProject(project.id)}
+          onRenameProject={(project, name) => void renameProject(project, name)}
+          onExportProject={exportProject}
         />
       </div>
 

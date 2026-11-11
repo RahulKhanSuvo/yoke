@@ -66,7 +66,7 @@ const sortedSessions = (project: ProjectWithSessions): SessionRow[] =>
  */
 export function ProjectList(props: ProjectListProps): JSX.Element {
   return (
-    <div class="flex flex-col gap-0.5">
+    <div class="flex flex-col gap-0.2">
       <For each={props.projects}>
         {(project) => {
           const expanded = () => props.expandedProjectId === project.id
@@ -86,7 +86,7 @@ export function ProjectList(props: ProjectListProps): JSX.Element {
               >
                 <button
                   type="button"
-                  class="flex min-w-0 flex-1 cursor-default items-center gap-1.5 rounded-md py-1.5 pl-1 text-left text-[13px] font-medium focus-visible:outline-none"
+                  class="flex min-w-0 flex-1 cursor-default items-center gap-1.5 rounded-md py-2 pl-1 text-left text-[13px] font-medium focus-visible:outline-none"
                   title={project.rootPath}
                   aria-expanded={expanded()}
                   onClick={() => props.onSelectProject(project)}
@@ -128,7 +128,7 @@ export function ProjectList(props: ProjectListProps): JSX.Element {
 
               {/* The project's sessions, shown while the project is expanded. */}
               <Show when={expanded()}>
-                <div class="mb-0.5 flex flex-col gap-px py-0.8">
+                <div class="mb-0.5 flex flex-col gap-px py-0.5">
                   <For
                     each={sortedSessions(project)}
                     fallback={
@@ -137,7 +137,7 @@ export function ProjectList(props: ProjectListProps): JSX.Element {
                   >
                     {(session) => (
                       <div
-                        class="group/session flex h-7 min-w-0 items-center rounded-md pr-0.5 transition-colors"
+                        class="group/session flex h-7 min-w-0 items-center rounded-sm transition-colors"
                         classList={{
                           'bg-surface-mute': props.activeSessionId === session.id,
                           'hover:bg-foreground/[0.03]': props.activeSessionId !== session.id

@@ -35,6 +35,7 @@ import { aiStore } from '@renderer/features/ai/ai-store'
 import { projectColor } from '@renderer/features/projects/project-color'
 import { notifyProjectsChanged } from '@renderer/features/projects/project-events'
 import { getAppState, setAppState } from '@renderer/lib/app-state'
+import { useSidebar } from '@renderer/context/sidebar-state'
 import { closeSessionTab, openSessionTab } from '@renderer/features/session/session-tabs'
 import type { ApprovalDecision, ApprovalRequest, MessagePart } from '@shared/ai'
 
@@ -48,6 +49,7 @@ export default function SessionView(): JSX.Element {
   const params = useParams()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const sidebar = useSidebar()
 
   const sessionId = () => params.sessionId
 
@@ -474,6 +476,13 @@ export default function SessionView(): JSX.Element {
     <div class="flex h-full bg-surface">
       <div class="flex min-w-0 flex-1 flex-col">
         <header class="flex h-12 shrink-0 items-center gap-2 px-4">
+          {/* The floating collapsed toggle floats here, so the header keeps its room and pushes its contents along,
+              like opencode's `CollapsedSidebarToggleSpace`. */}
+          <div
+            aria-hidden="true"
+            class="h-full shrink-0 transition-[width] duration-200 ease-in-out"
+            style={{ width: sidebar.collapsed() ? '30px' : '0px' }}
+          />
           <Show when={session()?.project}>
             {(project) => (
               <>

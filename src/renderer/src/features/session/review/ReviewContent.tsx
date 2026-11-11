@@ -3,12 +3,17 @@ import { makeEventListener } from '@solid-primitives/event-listener'
 import { HugeiconsIcon } from '@hugeicons/solid-js'
 import ArrowLeft01Icon from '@hugeicons/core-free-icons/ArrowLeft01Icon'
 import ArrowRight01Icon from '@hugeicons/core-free-icons/ArrowRight01Icon'
+import CollapseIcon from '@hugeicons/core-free-icons/CollapseIcon'
+import ExpandIcon from '@hugeicons/core-free-icons/ExpandIcon'
 import PanelLeftIcon from '@hugeicons/core-free-icons/PanelLeftIcon'
+import RectangleVerticalIcon from '@hugeicons/core-free-icons/RectangleVerticalIcon'
 import Refresh01Icon from '@hugeicons/core-free-icons/Refresh01Icon'
+import SplitIcon from '@hugeicons/core-free-icons/SplitIcon'
 import { IconButton } from '@renderer/components/ui/IconButton'
+import { SegmentedControl } from '@renderer/components/ui/Segmented'
 import type { ReviewFileEntry, ReviewFileDiff } from '@shared/review'
 import type { ReviewSidePanelProps } from './ReviewSidePanel'
-import { ReviewDiffView } from './ReviewDiffView'
+import { ReviewDiffView, type ReviewDiffStyle } from './ReviewDiffView'
 import { parseUnifiedDiff } from './review-diff'
 import { ReviewClean, ReviewLoading, ReviewNotRepo } from './ReviewEmpty'
 import { ReviewFileList } from './ReviewFileList'
@@ -16,6 +21,23 @@ import { DiffStats, STATUS_LETTER, statusColor } from './review-status'
 
 /** A pane with no room for the 200px file list shows only the preview. */
 const FILE_LIST_MIN_WIDTH = 440
+
+const DIFF_STYLE_KEY = 'yoke.review-diff-style'
+const EXPAND_MODE_KEY = 'yoke.review-expand-mode'
+
+type ExpandMode = 'expand' | 'collapse'
+
+function readStored<T extends string>(key: string, fallback: T, allowed: T[]): T {
+  try {
+    const value = localStorage.getItem(key) as T | null
+
+    if (value && allowed.includes(value)) return value
+  } catch {
+    // Storage can be unavailable; the default still works.
+  }
+
+  return fallback
+}
 
 export interface ReviewContentProps extends Pick<ReviewSidePanelProps, 'directory' | 'refreshKey'> {
   width: number
@@ -30,6 +52,22 @@ export function ReviewContent(props: ReviewContentProps): JSX.Element {
   const [filter, setFilter] = createSignal('')
   const [selected, setSelected] = createSignal<string>()
   const [refreshToken, setRefreshToken] = createSignal(0)
+  // opencode's review options: layout style and whether context lines hide.
+  const [diffStyle, setDiffStyle] = createSignal<ReviewDiffStyle>(
+    readStored(DIFF_STYLE_KEY, 'unified', ['unified', 'split'])
+  )
+  const [expandMode, setExpandMode] = createSignal<ExpandMode>(
+    readStored(EXPAND_MODE_KEY, 'expand', ['expand', 'collapse'])
+  )
+
+  createEffect(() => {
+    try {
+      localStorage.setItem(DIFF_STYLE_KEY, diffStyle())
+      localStorage.setItem(EXPAND_MODE_KEY, expandMode())
+    } catch {
+      // Persisting is best-effort.
+    }
+  })
 
   // The list needs room; a narrow pane falls back to preview-only with a
   // toolbar toggle, like opencode's collapsed sidebar.
@@ -182,6 +220,10 @@ export function ReviewContent(props: ReviewContentProps): JSX.Element {
                 diff={diff() ?? undefined}
                 loading={diff.loading}
                 lines={diffLines()}
+                diffStyle={diffStyle()}
+                expandMode={expandMode()}
+                onDiffStyle={setDiffStyle}
+                onExpandMode={setExpandMode}
                 canPrevious={!!previousFile()}
                 canNext={!!nextFile()}
                 showToggle={!showFileList()}
@@ -211,6 +253,10 @@ interface PreviewProps {
   diff: ReviewFileDiff | undefined
   loading: boolean
   lines: ReturnType<typeof parseUnifiedDiff>
+  diffStyle: ReviewDiffStyle
+  expandMode: ExpandMode
+  onDiffStyle: (style: ReviewDiffStyle) => void
+  onExpandMode: (mode: ExpandMode) => void
   canPrevious: boolean
   canNext: boolean
   /** True while the file list is hidden; renders the re-show toggle. */
@@ -274,10 +320,35 @@ function Preview(props: PreviewProps): JSX.Element {
         >
           <HugeiconsIcon icon={ArrowRight01Icon} size={14} />
         </IconButton>
+
+        <div class="ml-auto flex items-center gap-1.5">
+          <SegmentedControl
+            value={props.expandMode}
+            onChange={props.onExpandMode}
+            options={[
+              { value: 'expand', icon: ExpandIcon, label: 'Show all lines' },
+              { value: 'collapse', icon: CollapseIcon, label: 'Hide unchanged lines' }
+            ]}
+          />
+          <SegmentedControl
+            value={props.diffStyle}
+            onChange={props.onDiffStyle}
+            options={[
+              { value: 'unified', icon: RectangleVerticalIcon, label: 'Unified diff' },
+              { value: 'split', icon: SplitIcon, label: 'Split diff' }
+            ]}
+          />
+        </div>
       </div>
 
       <div class="min-h-0 flex-1 overflow-auto">
-        <ReviewDiffView value={props.diff} loading={props.loading} lines={props.lines} />
+        <ReviewDiffView
+          value={props.diff}
+          loading={props.loading}
+          lines={props.lines}
+          style={props.diffStyle}
+          collapsed={props.expandMode === 'collapse'}
+        />
       </div>
     </div>
   )

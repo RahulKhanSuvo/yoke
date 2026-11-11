@@ -39,7 +39,9 @@ export const SessionMessageTable = sqliteTable('session_message', {
   id: text()
     .primaryKey()
     .$defaultFn(() => createId.message()),
-  session_id: text().references(() => sessions.id),
+  session_id: text().references(() => sessions.id, {
+    onDelete: 'cascade'
+  }),
   type: text().notNull(), // "user" | "assistant"
   seq: integer().notNull(), // Order sequence (0, 1, 2...)
   time_created: integer(),
@@ -47,8 +49,12 @@ export const SessionMessageTable = sqliteTable('session_message', {
 })
 
 export const SessionPartTable = sqliteTable('session_part', {
-  message_id: text().references(() => SessionMessageTable.id),
-  session_id: text().references(() => sessions.id),
+  message_id: text().references(() => SessionMessageTable.id, {
+    onDelete: 'cascade'
+  }),
+  session_id: text().references(() => sessions.id, {
+    onDelete: 'cascade'
+  }),
   ordinal: integer().notNull(), // Order within the message
   type: text().notNull(), // "text" | "reasoning" | "tool_call" | "tool_result"
   call_id: text(), // Matches tool call with its output

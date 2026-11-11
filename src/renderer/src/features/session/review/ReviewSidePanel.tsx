@@ -2,6 +2,7 @@ import {
   createEffect,
   createResource,
   createSignal,
+  For,
   onCleanup,
   onMount,
   Show,
@@ -10,11 +11,23 @@ import {
 import { HugeiconsIcon } from '@hugeicons/solid-js'
 import Cancel01Icon from '@hugeicons/core-free-icons/Cancel01Icon'
 import FileDiffIcon from '@hugeicons/core-free-icons/FileDiffIcon'
+import Folder01Icon from '@hugeicons/core-free-icons/Folder01Icon'
+import GlobeIcon from '@hugeicons/core-free-icons/GlobeIcon'
 import PlusSignIcon from '@hugeicons/core-free-icons/PlusSignIcon'
+import TerminalIcon from '@hugeicons/core-free-icons/TerminalIcon'
 import { IconButton } from '@renderer/components/ui/IconButton'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@renderer/components/ui/dropdown-menu'
 import { ResizeHandle } from '@renderer/components/ui/ResizeHandle'
+import { BrowserPanel } from './BrowserPanel'
+import { FilesPanel } from './FilesPanel'
 import { ReviewContent } from './ReviewContent'
 import { ReviewLaunchers } from './ReviewLaunchers'
+import { TerminalPanel } from './TerminalPanel'
 
 const DEFAULT_WIDTH = 520
 const MIN_WIDTH = 340
@@ -22,10 +35,20 @@ const MAX_WIDTH = 760
 /** The chat keeps at least this much room while the pane is dragged. */
 const MIN_CHAT_WIDTH = 400
 const WIDTH_KEY = 'yoke.review-width'
-const TAB_KEY = 'yoke.review-tab'
+const TABS_KEY = 'yoke.side-tabs'
+const ACTIVE_KEY = 'yoke.side-active'
 
-/** Which tab the side panel shows; 'new' is opencode's launcher view. */
-export type ReviewTab = 'new' | 'review'
+/** The panel kinds the side region can host, like opencode's built-ins. */
+export type SideTabKind = 'review' | 'files' | 'terminal' | 'browser'
+
+const SIDE_TAB_KINDS: SideTabKind[] = ['review', 'files', 'terminal', 'browser']
+
+const TAB_META: Record<SideTabKind, { label: string }> = {
+  review: { label: 'Review' },
+  files: { label: 'Files' },
+  terminal: { label: 'Terminal' },
+  browser: { label: 'Browser' }
+}
 
 function readWidth(): number {
   try {
@@ -41,43 +64,89 @@ function readWidth(): number {
   return DEFAULT_WIDTH
 }
 
-function readTab(): ReviewTab {
+function readTabs(): SideTabKind[] {
   try {
-    return localStorage.getItem(TAB_KEY) === 'review' ? 'review' : 'new'
+    const stored = localStorage.getItem(TABS_KEY)
+
+    if (stored) {
+      const parsed = JSON.parse(stored) as unknown
+
+      if (
+        Array.isArray(parsed) &&
+        parsed.every((kind) => SIDE_TAB_KINDS.includes(kind as SideTabKind))
+      ) {
+        return [...new Set(parsed as SideTabKind[])]
+      }
+    }
   } catch {
-    return 'new'
+    // Storage can be unavailable; the default still works.
+  }
+
+  return []
+}
+
+/** The launcher view shows when no tab is open. */
+function readActive(): SideTabKind | undefined {
+  try {
+    const stored = localStorage.getItem(ACTIVE_KEY) as SideTabKind | null
+
+    return stored && SIDE_TAB_KINDS.includes(stored) ? stored : undefined
+  } catch {
+    return undefined
   }
 }
 
-/** Marks the Review tab as open so the next mounted panel selects it. */
-export function markReviewTabOpen(): void {
-  try {
-    localStorage.setItem(TAB_KEY, 'review')
-  } catch {
-    // Storage can be unavailable.
+/** The open side tabs and the selected one, shared so shortcuts reach the mounted panel. */
+const [tabs, setTabs] = createSignal<SideTabKind[]>(readTabs())
+const [active, setActive] = createSignal<SideTabKind | undefined>(readActive())
+
+/** Adds a tab of `kind` (if needed) and selects it, for shortcuts and links. */
+export function ensureSideTab(kind: SideTabKind): void {
+  setTabs((previous) => (previous.includes(kind) ? previous : [...previous, kind]))
+  setActive(kind)
+}
+
+/** Opens a tab from the strip's "+" menu or a launcher row. */
+function addSideTab(kind: SideTabKind): void {
+  ensureSideTab(kind)
+}
+
+/** Closes one tab; closing the last one returns to the launcher view. */
+function closeSideTab(kind: SideTabKind): void {
+  const index = tabs().indexOf(kind)
+  const remaining = tabs().filter((tab) => tab !== kind)
+
+  setTabs(remaining)
+
+  if (active() === kind) {
+    setActive(remaining[Math.min(index, remaining.length - 1)])
   }
 }
 
 function TabPill(props: {
-  icon: JSX.Element
+  icon?: JSX.Element
   label: string
   active: boolean
+  onSelect: () => void
   onClose: () => void
-  onSelect?: () => void
 }): JSX.Element {
   return (
-    <button
-      type="button"
-      class="flex h-6 shrink-0 items-center gap-2 rounded-[6px] border px-2 text-[12.5px] font-medium transition-colors"
+    <div
+      class="flex h-7 shrink-0 items-center gap-0.5 rounded-[6px] ps-2 pe-1 text-[12.5px] font-medium tracking-[-0.02px] transition-colors"
       classList={{
-        'border-line/60 bg-surface-mute text-foreground': props.active,
-        'border-transparent text-foreground-muted hover:text-foreground': !props.active
+        'border-[0.5px] border-line bg-surface-mute text-foreground': props.active,
+        'text-foreground-muted hover:bg-surface-mute/50': !props.active
       }}
-      aria-current={props.active ? 'page' : undefined}
-      onClick={props.onSelect}
     >
-      {props.icon}
-      <span class="max-w-40 truncate">{props.label}</span>
+      <button
+        type="button"
+        class="flex min-w-0 items-center gap-1.5"
+        aria-current={props.active ? 'page' : undefined}
+        onClick={props.onSelect}
+      >
+        {props.icon}
+        <span class="max-w-40 truncate">{props.label}</span>
+      </button>
       <IconButton
         label={`Close ${props.label}`}
         class="p-0.5 text-foreground-muted hover:bg-foreground/[0.06] hover:text-foreground"
@@ -85,7 +154,7 @@ function TabPill(props: {
       >
         <HugeiconsIcon icon={Cancel01Icon} size={12} />
       </IconButton>
-    </button>
+    </div>
   )
 }
 
@@ -99,13 +168,12 @@ export interface ReviewSidePanelProps {
 }
 
 /**
- * The session's right-side panel, like opencode's side region: a floating
- * bordered card with a compact pill tab strip. With no tab open it shows the
- * New tab launcher view; the Review tab lists working tree changes.
+ * The session's right-side region, like opencode's side panel: a flush column
+ * divided from the chat by a border, with a 48px tab strip over the open
+ * panels. With no tab open it shows the New-tab launcher view.
  */
 export function ReviewSidePanel(props: ReviewSidePanelProps): JSX.Element {
   const [width, setWidth] = createSignal(readWidth())
-  const [tab, setTab] = createSignal<ReviewTab>(readTab())
   const [availableWidth, setAvailableWidth] = createSignal(0)
 
   let panelRef: HTMLElement | undefined
@@ -135,7 +203,8 @@ export function ReviewSidePanel(props: ReviewSidePanelProps): JSX.Element {
   createEffect(() => {
     try {
       localStorage.setItem(WIDTH_KEY, String(width()))
-      localStorage.setItem(TAB_KEY, tab())
+      localStorage.setItem(TABS_KEY, JSON.stringify(tabs()))
+      localStorage.setItem(ACTIVE_KEY, active() ?? '')
     } catch {
       // Persisting is best-effort.
     }
@@ -148,14 +217,31 @@ export function ReviewSidePanel(props: ReviewSidePanelProps): JSX.Element {
     if (width() > max) setWidth(max)
   })
 
-  // The launcher row shows the change count, so it needs its own summary query.
+  // The launcher rows show the change count, so it needs its own summary query.
   const [summary] = createResource(
-    () => (tab() === 'new' ? props.directory : undefined),
+    () => (tabs().length === 0 ? props.directory : undefined),
     (directory) => window.api.review.summary(directory)
   )
 
+  const tabIcon = (kind: SideTabKind): JSX.Element => {
+    const icon =
+      kind === 'review'
+        ? FileDiffIcon
+        : kind === 'files'
+          ? Folder01Icon
+          : kind === 'terminal'
+            ? TerminalIcon
+            : GlobeIcon
+
+    return <HugeiconsIcon icon={icon} size={13} class="text-foreground-muted" />
+  }
+
   return (
-    <aside ref={panelRef} class="flex min-h-0 shrink-0" style={{ width: `${width()}px` }}>
+    <aside
+      ref={panelRef}
+      class="flex h-full shrink-0 border-l border-line bg-surface"
+      style={{ width: `${width()}px` }}
+    >
       <ResizeHandle
         direction="horizontal"
         edge="start"
@@ -166,46 +252,99 @@ export function ReviewSidePanel(props: ReviewSidePanelProps): JSX.Element {
         class="w-1 shrink-0 cursor-col-resize bg-transparent"
       />
 
-      <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[10px] border border-line bg-surface shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-        {/* Compact pill tab strip, like opencode's side region tabs. */}
-        <div class="flex h-12 shrink-0 items-center gap-1.5 pb-0 pe-2 ps-3">
+      <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        {/* The tab strip lines up with the session header, like opencode's. */}
+        <div class="flex h-12 shrink-0 items-center gap-1 border-b border-line ps-2 pe-1.5">
           <Show
-            when={tab() === 'review'}
+            when={tabs().length > 0}
             fallback={
-              <TabPill icon={undefined} label="New tab" active={true} onClose={props.onClose} />
+              // opencode's New tab: a lone selected tab whose view lists the launchers.
+              <TabPill label="New tab" active onSelect={() => undefined} onClose={props.onClose} />
             }
           >
-            <TabPill
-              icon={<HugeiconsIcon icon={FileDiffIcon} size={13} class="text-foreground-muted" />}
-              label="Review"
-              active={true}
-              onClose={() => setTab('new')}
-            />
+            <For each={tabs()}>
+              {(kind) => (
+                <TabPill
+                  icon={tabIcon(kind)}
+                  label={TAB_META[kind].label}
+                  active={active() === kind}
+                  onSelect={() => setActive(kind)}
+                  onClose={() => closeSideTab(kind)}
+                />
+              )}
+            </For>
           </Show>
 
-          <IconButton
-            label="Open new tab view"
-            class="p-1 text-foreground-muted hover:bg-surface-mute hover:text-foreground"
-            onClick={() => setTab('new')}
-          >
-            <HugeiconsIcon icon={PlusSignIcon} size={14} />
-          </IconButton>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              class="flex size-7 shrink-0 items-center justify-center rounded-[6px] text-foreground-muted transition hover:bg-surface-mute hover:text-foreground focus-visible:outline-none"
+              aria-label="Add panel tab"
+            >
+              <HugeiconsIcon icon={PlusSignIcon} size={14} />
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent class="min-w-40">
+              <For each={SIDE_TAB_KINDS.filter((kind) => !tabs().includes(kind))}>
+                {(kind) => (
+                  <DropdownMenuItem class="text-[12.5px]" onSelect={() => addSideTab(kind)}>
+                    <HugeiconsIcon
+                      icon={
+                        kind === 'review'
+                          ? FileDiffIcon
+                          : kind === 'files'
+                            ? Folder01Icon
+                            : kind === 'terminal'
+                              ? TerminalIcon
+                              : GlobeIcon
+                      }
+                      size={14}
+                      class="text-foreground-muted"
+                    />
+                    {TAB_META[kind].label}
+                  </DropdownMenuItem>
+                )}
+              </For>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
+        {/* Open panels stay mounted (hidden) so terminals and previews keep their state, like opencode's side region. */}
         <Show
-          when={tab() === 'review'}
+          when={tabs().length > 0 && active()}
           fallback={
             <ReviewLaunchers
               filesChanged={summary()?.files.length}
-              onOpenReview={() => setTab('review')}
+              onOpenReview={() => addSideTab('review')}
+              onOpenFiles={() => addSideTab('files')}
+              onOpenTerminal={() => addSideTab('terminal')}
+              onOpenBrowser={() => addSideTab('browser')}
             />
           }
         >
-          <ReviewContent
-            directory={props.directory}
-            refreshKey={props.refreshKey}
-            width={width()}
-          />
+          <div class="relative min-h-0 min-w-0 flex-1">
+            <For each={tabs()}>
+              {(kind) => (
+                <div
+                  class="absolute inset-0 flex min-h-0 flex-col"
+                  classList={{ hidden: active() !== kind }}
+                  data-panel-kind={kind}
+                >
+                  {kind === 'review' && (
+                    <ReviewContent
+                      directory={props.directory}
+                      refreshKey={props.refreshKey}
+                      width={width()}
+                    />
+                  )}
+                  {kind === 'files' && <FilesPanel directory={props.directory} />}
+                  {kind === 'terminal' && (
+                    <TerminalPanel directory={props.directory} active={active() === 'terminal'} />
+                  )}
+                  {kind === 'browser' && <BrowserPanel />}
+                </div>
+              )}
+            </For>
+          </div>
         </Show>
       </div>
     </aside>

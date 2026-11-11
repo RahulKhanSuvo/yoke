@@ -105,7 +105,7 @@ export function ProjectList(props: ProjectListProps): JSX.Element {
                   // not the project row too.
                   'bg-surface-mute text-foreground':
                     props.activeProjectId === project.id && !props.activeSessionId,
-                  'text-foreground hover:bg-foreground/[0.03]':
+                  'text-foreground hover:bg-foreground':
                     props.activeProjectId !== project.id || !!props.activeSessionId
                 }}
               >

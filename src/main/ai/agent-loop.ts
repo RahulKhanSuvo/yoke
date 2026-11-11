@@ -6,6 +6,7 @@ import type { AgentUsage } from '../../shared/ai'
 import { systemPrompt } from './agents'
 import { resolveModel } from './model-resolver'
 import { buildTools } from './tools'
+import type { ApprovalRequester } from './approval.service'
 import { findAgent } from '../../shared/agents'
 
 const MAX_OUTPUT = 20_000
@@ -18,6 +19,8 @@ export interface AgentRunOptions {
   directory: string
   messages: ModelMessage[]
   signal?: AbortSignal
+  /** When set, bash commands wait for user approval before running. */
+  approval?: ApprovalRequester
 }
 
 export interface AgentCallbacks {
@@ -69,7 +72,7 @@ export async function runAgent(
     model,
     system: systemPrompt(agent.id, options.directory),
     messages: options.messages,
-    tools: buildTools(options.directory, agent.tools),
+    tools: buildTools(options.directory, agent.tools, options.approval),
     stopWhen: stepCountIs(agent.steps),
     abortSignal: options.signal
   })

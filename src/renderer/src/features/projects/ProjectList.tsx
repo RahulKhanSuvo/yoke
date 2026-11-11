@@ -227,7 +227,7 @@ export function ProjectList(props: ProjectListProps): JSX.Element {
           <div class="flex justify-end gap-2">
             <button
               type="button"
-              class="rounded-md px-3 py-1.5 text-[12.5px] text-foreground-muted hover:bg-foreground/[0.03]"
+              class="rounded-md px-3 py-1.5 text-[12.5px] text-foreground-muted hover:bg-foreground/3"
               onClick={() => setRenaming(undefined)}
             >
               Cancel

@@ -59,6 +59,17 @@ const kindIcons: Record<ProjectWithSessions['kind'], IconObject> = {
   generic: Folder01Icon
 }
 
+/** Each stack's brand color, so the sidebar icons read at a glance. */
+const kindColors: Record<ProjectWithSessions['kind'], string> = {
+  react: 'text-cyan-500',
+  next: 'text-foreground',
+  typescript: 'text-blue-500',
+  javascript: 'text-amber-500',
+  python: 'text-sky-600',
+  php: 'text-violet-500',
+  generic: 'text-foreground-muted'
+}
+
 /** A project's sessions, newest first. */
 const sortedSessions = (project: ProjectWithSessions): SessionRow[] =>
   [...(project.sessions as SessionRow[])].sort(
@@ -111,7 +122,7 @@ export function ProjectList(props: ProjectListProps): JSX.Element {
                   <HugeiconsIcon
                     icon={kindIcons[project.kind] ?? Folder01Icon}
                     size={15}
-                    class="shrink-0 text-foreground-muted"
+                    class={`shrink-0 ${kindColors[project.kind] ?? 'text-foreground-muted'}`}
                   />
                   <span class="truncate">{project.name}</span>
                 </button>

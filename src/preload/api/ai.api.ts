@@ -1,6 +1,8 @@
 import { ipcRenderer, type IpcRendererEvent } from 'electron'
 
 import type {
+  ApprovalResponse,
+  ApprovalRequest,
   ChatSendRequest,
   ChatStreamChunk,
   ChatStreamDone,
@@ -34,6 +36,14 @@ export const aiApi = {
     ipcRenderer.invoke('ai:chat:send', request),
 
   cancel: (requestId: string): Promise<void> => ipcRenderer.invoke('ai:chat:cancel', requestId),
+
+  /** Answers a bash approval dialog raised by the main process. */
+  respondApproval: (response: ApprovalResponse): Promise<void> =>
+    ipcRenderer.invoke('ai:approval:respond', response),
+
+  /** Subscribe to pending tool approval requests. */
+  onApprovalRequest: (listener: (payload: ApprovalRequest) => void): (() => void) =>
+    subscribe('ai:approval:request', listener),
 
   onChunk: (listener: (payload: ChatStreamChunk) => void): (() => void) =>
     subscribe('ai:stream:chunk', listener),

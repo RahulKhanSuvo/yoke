@@ -1,16 +1,25 @@
-import { createResource, createSignal, createUniqueId, onCleanup, onMount, Show } from 'solid-js'
+import {
+  createEffect,
+  createResource,
+  createSignal,
+  createUniqueId,
+  onCleanup,
+  onMount,
+  Show
+} from 'solid-js'
 import { useLocation, useNavigate } from '@solidjs/router'
 import { HugeiconsIcon } from '@hugeicons/solid-js'
 import {
   FolderAddIcon,
-  PanelLeftIcon,
   SearchIcon as SearchIconData,
   SettingsIcon as SettingsIconData
 } from '@hugeicons/core-free-icons'
 import DashboardSquareAddIcon from '@hugeicons/core-free-icons/DashboardSquareAddIcon'
 import { IconButton } from '@renderer/components/ui/IconButton'
+import { SidebarOpenIcon } from '@renderer/components/ui/SidebarIcons'
 import { NavItem } from '@renderer/components/ui/NavItem'
 import { ProjectList } from '@renderer/features/projects/ProjectList'
+import { openSearch } from '@renderer/features/search/search-store'
 import {
   notifyProjectsChanged,
   onProjectsChanged
@@ -37,6 +46,7 @@ export const AppSidebar = () => {
   })
 
   const [activeProjectIdSignal, setActiveProjectIdSignal] = createSignal<string>()
+  const [expandedProjectId, setExpandedProjectId] = createSignal<string>()
   const [busy, setBusy] = createSignal(false)
   const location = useLocation()
 
@@ -62,6 +72,13 @@ export const AppSidebar = () => {
     return activeProjectIdSignal()
   }
 
+  // The project whose session is open always shows its session list.
+  createEffect(() => {
+    const active = activeProjectId()
+
+    if (active) setExpandedProjectId(active)
+  })
+
   /** Creates a session in the project root and opens it. */
   const createSession = async (project: { id: string; rootPath: string }) => {
     if (busy()) return
@@ -80,14 +97,15 @@ export const AppSidebar = () => {
     }
   }
 
-  /** Opens the project's latest session, or starts a new one when it has none. */
-  const openProject = (project: { id: string; rootPath: string; sessions: unknown[] }) => {
-    const latest = (project.sessions as Array<{ id: string }>)[0]
+  /** Clicking a project toggles its session list; a project with no sessions starts one instead. */
+  const selectProject = (project: { id: string; rootPath: string; sessions: unknown[] }) => {
+    if (project.sessions.length === 0) {
+      void createSession(project)
 
-    setActiveProjectIdSignal(project.id)
+      return
+    }
 
-    if (latest) navigate(`/sessions/${latest.id}`)
-    else void createSession(project)
+    setExpandedProjectId(expandedProjectId() === project.id ? undefined : project.id)
   }
 
   const addProject = async () => {
@@ -104,6 +122,16 @@ export const AppSidebar = () => {
     } finally {
       setBusy(false)
     }
+  }
+
+  /** Deletes a session from the sidebar's session list; leaves it first when it's the open one. */
+  const deleteSession = async (sessionId: string) => {
+    await window.api.sessions.delete(sessionId)
+
+    if (activeSessionId() === sessionId) navigate('/')
+
+    await refetch()
+    notifyProjectsChanged()
   }
 
   const removeProject = async (projectId: string) => {
@@ -124,7 +152,9 @@ export const AppSidebar = () => {
     <aside id={id} class="flex h-full w-full flex-col overflow-hidden bg-surface-soft">
       <div class="flex h-12 shrink-0 items-center justify-between px-3">
         <NavItem
-          icon={<HugeiconsIcon icon={DashboardSquareAddIcon} size={15} class="text-foreground-muted" />}
+          icon={
+            <HugeiconsIcon icon={DashboardSquareAddIcon} size={15} class="text-foreground-muted" />
+          }
           label="Home"
           onClick={() => navigate('/')}
         />
@@ -135,7 +165,8 @@ export const AppSidebar = () => {
           class="p-1"
           onClick={sidebar.toggle}
         >
-          <HugeiconsIcon icon={PanelLeftIcon} size={16} class="text-foreground-muted" />
+          {/* opencode's toggle: the filled panel while the sidebar rests open. */}
+          <SidebarOpenIcon size={16} class="text-foreground-muted" />
         </IconButton>
       </div>
 
@@ -144,6 +175,7 @@ export const AppSidebar = () => {
           icon={<HugeiconsIcon icon={SearchIconData} size={15} class="text-foreground-muted" />}
           label="Search"
           shortcut={SEARCH_SHORTCUT}
+          onClick={openSearch}
         />
       </div>
 
@@ -172,10 +204,14 @@ export const AppSidebar = () => {
 
         <ProjectList
           projects={projects() ?? []}
+          expandedProjectId={expandedProjectId()}
           activeProjectId={activeProjectId()}
+          activeSessionId={activeSessionId()}
           busy={busy()}
-          onSelectProject={openProject}
+          onSelectProject={selectProject}
           onNewSession={(project) => void createSession(project)}
+          onOpenSession={(_project, session) => navigate(`/sessions/${session.id}`)}
+          onDeleteSession={(_project, session) => void deleteSession(session.id)}
           onRemoveProject={(project) => void removeProject(project.id)}
         />
       </div>

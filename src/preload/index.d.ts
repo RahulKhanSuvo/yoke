@@ -31,6 +31,9 @@ export interface PreloadApi {
     list: () => Promise<ProjectWithSessions[]>
     selectFolder: () => Promise<Project | null>
     delete: (id: string) => Promise<void>
+    rename: (id: string, name: string) => Promise<Project>
+    /** Asks for a destination and writes the project's JSON export; returns the path or null. */
+    export: (id: string) => Promise<string | null>
   }
   sessions: {
     create: (projectId: string, directory: string) => Promise<Session>

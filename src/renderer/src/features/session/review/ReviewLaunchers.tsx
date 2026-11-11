@@ -1,9 +1,10 @@
-import { For, Show, type JSX } from 'solid-js'
+import { For, Show, createSignal, type JSX } from 'solid-js'
 import { HugeiconsIcon } from '@hugeicons/solid-js'
 import FileDiffIcon from '@hugeicons/core-free-icons/FileDiffIcon'
 import Folder01Icon from '@hugeicons/core-free-icons/Folder01Icon'
 import GlobeIcon from '@hugeicons/core-free-icons/GlobeIcon'
 import TerminalIcon from '@hugeicons/core-free-icons/TerminalIcon'
+import type { ClosedSideTab, SideTabKind } from './ReviewSidePanel'
 
 /**
  * Opencode's neutral keybind chips: 14px squares, uppercase 11px labels,
@@ -51,9 +52,76 @@ function LauncherRow(props: {
   )
 }
 
+/** How many closed tabs the New-tab view shows before "Show more". Like opencode's `SECTION_LIMIT`. */
+const CLOSED_SECTION_LIMIT = 5
+
+/** The New-tab view's "Recently closed", newest first, expandable — like opencode's `ClosedTabsSection`. */
+function ClosedTabsSection(props: {
+  entries: readonly ClosedSideTab[]
+  onReopen: (key: SideTabKind) => void
+}): JSX.Element {
+  const [expanded, setExpanded] = createSignal(false)
+  const shown = () => (expanded() ? props.entries : props.entries.slice(0, CLOSED_SECTION_LIMIT))
+
+  return (
+    <Show when={props.entries.length > 0}>
+      <section class="flex flex-col gap-1 pt-6" aria-label="Recently closed">
+        <h2 class="px-2 pb-1 text-[13px] font-[440] text-foreground-muted">Recently closed</h2>
+        <For each={shown()}>
+          {(entry) => (
+            <button
+              type="button"
+              class="flex h-8 w-full shrink-0 items-center justify-between gap-4 rounded-[6px] px-2 text-start text-[13px] font-[440] transition-colors hover:bg-surface-mute"
+              onClick={() => props.onReopen(entry.key)}
+            >
+              <span class="flex min-w-0 items-center gap-1.5">
+                <HugeiconsIcon
+                  icon={
+                    entry.key === 'review'
+                      ? FileDiffIcon
+                      : entry.key === 'files'
+                        ? Folder01Icon
+                        : entry.key === 'terminal'
+                          ? TerminalIcon
+                          : GlobeIcon
+                  }
+                  size={14}
+                  class="shrink-0 text-foreground-muted"
+                />
+                <span class="min-w-0 shrink truncate text-foreground">{entry.title}</span>
+              </span>
+              <Show when={entry === props.entries[0]}>
+                <span class="flex shrink-0 items-center gap-[2px]" aria-hidden="true">
+                  {['Ctrl', 'Shift', 'T'].map((key) => (
+                    <span class="flex h-[14px] min-w-[14px] items-center justify-center rounded-[2px] bg-surface-mute px-1 text-[11px] font-[530] uppercase leading-none tracking-[0.05px] text-foreground-muted">
+                      {key}
+                    </span>
+                  ))}
+                </span>
+              </Show>
+            </button>
+          )}
+        </For>
+        <Show when={!expanded() && props.entries.length > CLOSED_SECTION_LIMIT}>
+          <button
+            type="button"
+            class="flex h-8 w-fit items-center gap-1 rounded-[6px] px-2 text-[13px] font-[440] text-foreground-muted transition-colors hover:bg-surface-mute hover:text-foreground"
+            onClick={() => setExpanded(true)}
+          >
+            Show more
+          </button>
+        </Show>
+      </section>
+    </Show>
+  )
+}
+
 export interface ReviewLaunchersProps {
   /** Total files changed, when the count is known; hidden while loading. */
   filesChanged: number | undefined
+  /** This session's recently closed side tabs, newest first. */
+  closed: readonly ClosedSideTab[]
+  onReopen: (key: SideTabKind) => void
   onOpenReview: () => void
   onOpenFiles: () => void
   onOpenTerminal: () => void
@@ -61,8 +129,8 @@ export interface ReviewLaunchersProps {
 }
 
 /**
- * The New-tab view of an empty side panel: one bordered row per available
- * panel, centered like opencode's launcher list.
+ * The New-tab view: one bordered row per available panel, centered like
+ * opencode's launcher list, with the session's recently closed tabs below.
  */
 export function ReviewLaunchers(props: ReviewLaunchersProps): JSX.Element {
   return (
@@ -100,6 +168,8 @@ export function ReviewLaunchers(props: ReviewLaunchersProps): JSX.Element {
           keys={['Ctrl', 'Alt', 'F']}
           onClick={props.onOpenFiles}
         />
+
+        <ClosedTabsSection entries={props.closed} onReopen={props.onReopen} />
       </div>
     </div>
   )

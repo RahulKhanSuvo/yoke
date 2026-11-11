@@ -5,6 +5,7 @@ import { aiApi } from './api/ai.api'
 import { reviewApi } from './api/review.api'
 import { filesApi } from './api/files.api'
 import { terminalApi } from './api/terminal.api'
+import { stateApi } from './api/state.api'
 
 /**
  * A minimal, sandbox-safe stand-in for `@electron-toolkit/preload`'s
@@ -20,7 +21,8 @@ export const api = {
   ai: aiApi,
   review: reviewApi,
   files: filesApi,
-  terminal: terminalApi
+  terminal: terminalApi,
+  state: stateApi
 }
 if (process.contextIsolated) {
   try {

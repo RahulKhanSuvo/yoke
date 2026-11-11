@@ -3,6 +3,7 @@ import { registerFilesIpc } from './files.ipc'
 import { registerProjectIpc } from './project.ipc'
 import { registerReviewIpc } from './review.ipc'
 import { registerSessionIpc } from './session.ipc'
+import { registerStateIpc } from './state.ipc'
 import { registerTerminalIpc, stopTerminalsOnQuit } from './terminal.ipc'
 
 // Central registration point for all IPC handlers.
@@ -14,6 +15,7 @@ export function registerIpcHandlers(): void {
   registerReviewIpc()
   registerFilesIpc()
   registerTerminalIpc()
+  registerStateIpc()
 }
 
 export { stopTerminalsOnQuit }

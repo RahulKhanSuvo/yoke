@@ -79,6 +79,12 @@ export interface PreloadApi {
     /** Subscribes to pty output; returns the unsubscribe function. */
     onData: (handler: (id: string, chunk: string) => void) => () => void
   }
+  state: {
+    /** All persisted UI state at once, for the startup hydrate. */
+    getAll: () => Promise<Record<string, string>>
+    set: (key: string, value: string) => Promise<void>
+    delete: (key: string) => Promise<void>
+  }
 }
 
 declare global {

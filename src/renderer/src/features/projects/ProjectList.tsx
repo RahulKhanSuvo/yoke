@@ -144,11 +144,11 @@ export function ProjectList(props: ProjectListProps): JSX.Element {
                 <IconButton
                   label={`New session in ${project.name}`}
                   class="p-1 opacity-0 transition-opacity hover:text-foreground
-                 text-black focus-visible:opacity-100 group-hover/project:opacity-100"
+               focus-visible:opacity-100 group-hover/project:opacity-100"
                   disabled={props.busy}
                   onClick={() => props.onNewSession(project)}
                 >
-                  <HugeiconsIcon icon={PlusSignIcon} size={14} class="text-foreground-muted" />
+                  <HugeiconsIcon icon={PlusSignIcon} size={14} class="text-black" />
                 </IconButton>
               </div>
 
@@ -163,7 +163,7 @@ export function ProjectList(props: ProjectListProps): JSX.Element {
                   >
                     {(session) => (
                       <div
-                        class="group/session flex h-7 min-w-0 items-center rounded-sm transition-colors"
+                        class="group/session flex h-8 min-w-0 items-center rounded-md transition-colors"
                         classList={{
                           'bg-surface-mute': props.activeSessionId === session.id,
                           'hover:bg-foreground/[0.03]': props.activeSessionId !== session.id
@@ -184,10 +184,10 @@ export function ProjectList(props: ProjectListProps): JSX.Element {
                         <button
                           type="button"
                           aria-label={`Delete session ${session.title}`}
-                          class="flex size-5 shrink-0 items-center justify-center rounded text-foreground-muted opacity-0 transition group-hover/session:opacity-100 hover:text-danger focus-visible:opacity-100 focus-visible:outline-none"
+                          class="flex size-5 shrink-0 items-center justify-center rounded text-foreground-muted opacity-0 transition group-hover/session:opacity-100 hover:text-danger focus-visible:opacity-100 focus-visible:outline-none cursor-pointer"
                           onClick={() => props.onDeleteSession(project, session)}
                         >
-                          <HugeiconsIcon icon={XIcon} size={13} />
+                          <HugeiconsIcon icon={XIcon} size={18} />
                         </button>
                       </div>
                     )}

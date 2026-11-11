@@ -18,6 +18,7 @@ import { parseUnifiedDiff } from './review-diff'
 import { ReviewClean, ReviewLoading, ReviewNotRepo } from './ReviewEmpty'
 import { ReviewFileList } from './ReviewFileList'
 import { DiffStats, STATUS_LETTER, statusColor } from './review-status'
+import { getAppState, setAppState } from '@renderer/lib/app-state'
 
 /** A pane with no room for the 200px file list shows only the preview. */
 const FILE_LIST_MIN_WIDTH = 440
@@ -28,13 +29,9 @@ const EXPAND_MODE_KEY = 'yoke.review-expand-mode'
 type ExpandMode = 'expand' | 'collapse'
 
 function readStored<T extends string>(key: string, fallback: T, allowed: T[]): T {
-  try {
-    const value = localStorage.getItem(key) as T | null
+  const value = getAppState(key) as T | null
 
-    if (value && allowed.includes(value)) return value
-  } catch {
-    // Storage can be unavailable; the default still works.
-  }
+  if (value && allowed.includes(value)) return value
 
   return fallback
 }
@@ -61,12 +58,8 @@ export function ReviewContent(props: ReviewContentProps): JSX.Element {
   )
 
   createEffect(() => {
-    try {
-      localStorage.setItem(DIFF_STYLE_KEY, diffStyle())
-      localStorage.setItem(EXPAND_MODE_KEY, expandMode())
-    } catch {
-      // Persisting is best-effort.
-    }
+    setAppState(DIFF_STYLE_KEY, diffStyle())
+    setAppState(EXPAND_MODE_KEY, expandMode())
   })
 
   // The list needs room; a narrow pane falls back to preview-only with a

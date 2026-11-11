@@ -1,4 +1,5 @@
 import { createSignal } from 'solid-js'
+import { getAppState, setAppState } from '@renderer/lib/app-state'
 
 /** A session that is currently open in the sidebar as a tab. */
 export interface SessionTab {
@@ -13,7 +14,7 @@ const STORAGE_KEY = 'yoke.session-tabs'
 
 function readStoredTabs(): SessionTab[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = getAppState(STORAGE_KEY)
 
     if (!raw) return []
 
@@ -37,11 +38,7 @@ function readStoredTabs(): SessionTab[] {
 }
 
 function persist(tabs: SessionTab[]): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tabs))
-  } catch {
-    // Storage can be unavailable; the in-memory tabs still work.
-  }
+  setAppState(STORAGE_KEY, JSON.stringify(tabs))
 }
 
 const [tabs, setTabs] = createSignal<SessionTab[]>(readStoredTabs())

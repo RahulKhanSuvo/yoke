@@ -36,6 +36,7 @@
     "@solidjs/router": "^1.0.1",
     "ai": "^7.0.159",
     "better-sqlite3": "^13.0.3",
+    "dompurify": "^3.4.17",
     "drizzle-orm": "^0.45.4",
     "electron-updater": "^6.8.9",
     "keytar": "^7.9.0",

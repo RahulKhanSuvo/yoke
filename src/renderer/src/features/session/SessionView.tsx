@@ -25,22 +25,23 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@renderer/components/ui/dropdown-menu'
-import { ReviewSidePanel, ensureSideTab } from '@renderer/features/session/review/ReviewSidePanel'
+import {
+  ReviewSidePanel,
+  ensureSideTab,
+  reopenClosedTab
+} from '@renderer/features/session/review/ReviewSidePanel'
 import { UsageRing } from '@renderer/features/session/UsageRing'
 import { aiStore } from '@renderer/features/ai/ai-store'
 import { projectColor } from '@renderer/features/projects/project-color'
 import { notifyProjectsChanged } from '@renderer/features/projects/project-events'
+import { getAppState, setAppState } from '@renderer/lib/app-state'
 import { closeSessionTab, openSessionTab } from '@renderer/features/session/session-tabs'
 import type { ApprovalDecision, ApprovalRequest, MessagePart } from '@shared/ai'
 
 const REVIEW_OPEN_KEY = 'yoke.review-open'
 
 function readReviewOpen(): boolean {
-  try {
-    return localStorage.getItem(REVIEW_OPEN_KEY) === 'true'
-  } catch {
-    return false
-  }
+  return getAppState(REVIEW_OPEN_KEY) === 'true'
 }
 
 export default function SessionView(): JSX.Element {
@@ -73,11 +74,7 @@ export default function SessionView(): JSX.Element {
   const [reviewRefresh, setReviewRefresh] = createSignal(0)
 
   createEffect(() => {
-    try {
-      localStorage.setItem(REVIEW_OPEN_KEY, String(reviewOpen()))
-    } catch {
-      // Persisting the panel state is best-effort.
-    }
+    setAppState(REVIEW_OPEN_KEY, String(reviewOpen()))
   })
 
   let scrollArea: HTMLDivElement | undefined
@@ -289,6 +286,25 @@ export default function SessionView(): JSX.Element {
     // Open the side panel straight to a tab, like opencode's panel shortcuts:
     // review.toggle (Ctrl Alt R), browser (B), terminal (T), files (F).
     makeEventListener(document, 'keydown', (event) => {
+      // Reopen the most recently closed side tab, like opencode's file.tab.reopen.
+      if (
+        event.ctrlKey &&
+        event.shiftKey &&
+        !event.altKey &&
+        !event.metaKey &&
+        event.key.toLowerCase() === 't'
+      ) {
+        const id = sessionId()
+
+        if (!id) return
+
+        event.preventDefault()
+        reopenClosedTab(id)
+        setReviewOpen(true)
+
+        return
+      }
+
       if (!event.ctrlKey || !event.altKey || event.metaKey || event.shiftKey) return
 
       const key = event.key.toLowerCase()
@@ -305,8 +321,12 @@ export default function SessionView(): JSX.Element {
 
       if (!kind || event.defaultPrevented) return
 
+      const id = sessionId()
+
+      if (!id) return
+
       event.preventDefault()
-      ensureSideTab(kind)
+      ensureSideTab(id, kind)
       setReviewOpen(true)
     })
   })
@@ -584,6 +604,7 @@ export default function SessionView(): JSX.Element {
       <Show when={reviewOpen() ? session()?.directory : undefined}>
         {(directory) => (
           <ReviewSidePanel
+            sessionId={sessionId() ?? ''}
             directory={directory()}
             refreshKey={reviewRefresh()}
             onClose={() => setReviewOpen(false)}

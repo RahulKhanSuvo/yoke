@@ -198,10 +198,7 @@ interface ProjectExport {
 }
 
 /** Builds the project's export JSON, asks where to save it, and writes it. Returns the path or null. */
-export async function exportProject(
-  projectId: string,
-  win: BrowserWindow
-): Promise<string | null> {
+export async function exportProject(projectId: string, win: BrowserWindow): Promise<string | null> {
   if (typeof projectId !== 'string' || !projectId.trim()) {
     throw new Error('Invalid project export')
   }
@@ -216,7 +213,11 @@ export async function exportProject(
 
   const exportData: ProjectExport = {
     exportedAt: Date.now(),
-    project: { name: project.name, rootPath: project.rootPath, kind: await detectProjectKind(project.rootPath) },
+    project: {
+      name: project.name,
+      rootPath: project.rootPath,
+      kind: await detectProjectKind(project.rootPath)
+    },
     sessions: await Promise.all(
       sessionRows.map(async (session) => ({
         id: session.id,

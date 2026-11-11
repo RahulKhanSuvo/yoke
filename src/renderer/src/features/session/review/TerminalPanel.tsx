@@ -10,6 +10,26 @@ export interface TerminalPanelProps {
   active: boolean
 }
 
+/** ANSI palette that stays readable on both the light and dark app themes. */
+const ANSI: Record<string, string> = {
+  black: '#27272a',
+  red: '#dc2626',
+  green: '#16a34a',
+  yellow: '#ca8a04',
+  blue: '#2563eb',
+  magenta: '#c026d3',
+  cyan: '#0891b2',
+  white: '#e4e4e7',
+  brightBlack: '#52525b',
+  brightRed: '#ef4444',
+  brightGreen: '#22c55e',
+  brightYellow: '#eab308',
+  brightBlue: '#3b82f6',
+  brightMagenta: '#e879f9',
+  brightCyan: '#22d3ee',
+  brightWhite: '#fafafa'
+}
+
 /**
  * The side panel's Terminal tab: a real shell (node-pty) rendered by xterm.js,
  * like opencode's terminal panel. The shell persists per project, so closing
@@ -20,17 +40,29 @@ export function TerminalPanel(props: TerminalPanelProps): JSX.Element {
 
   const [error, setError] = createSignal<string>()
   const [ptyId, setPtyId] = createSignal<string>()
+  /** Output that arrives while the start IPC is still resolving; flushed once the id is known. */
+  let buffered: Array<[string, string]> = []
 
   onMount(() => {
     if (!container) return
+
+    // The terminal follows the app theme instead of forcing black, like
+    // opencode's terminal panel.
+    const styles = getComputedStyle(container)
+    const surface = styles.getPropertyValue('--color-surface').trim() || '#ffffff'
+    const foreground = styles.getPropertyValue('--color-foreground').trim() || '#27272a'
 
     const terminal = new Terminal({
       fontSize: 12,
       fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
       cursorBlink: true,
       theme: {
-        background: '#00000000',
-        foreground: '#3b3b3b'
+        background: surface,
+        foreground,
+        cursor: foreground,
+        cursorAccent: surface,
+        selectionBackground: `${foreground}22`,
+        ...ANSI
       }
     })
     const fit = new FitAddon()
@@ -65,7 +97,15 @@ export function TerminalPanel(props: TerminalPanelProps): JSX.Element {
 
     observer.observe(container)
     unsubscribe = window.api.terminal.onData((id, chunk) => {
-      if (id !== ptyId()) return
+      const current = ptyId()
+
+      if (!current) {
+        // The start IPC is still resolving; keep the shell's first output.
+        buffered.push([id, chunk])
+        return
+      }
+
+      if (id !== current) return
 
       terminal.write(chunk)
     })
@@ -75,11 +115,16 @@ export function TerminalPanel(props: TerminalPanelProps): JSX.Element {
         if (disposed) return
 
         if (!result.id) {
-          setError(`No shell available for this project (${props.directory}).`)
+          setError('No shell available for this project.')
           return
         }
 
         setPtyId(result.id)
+
+        // Replay whatever the shell printed while the id was in flight.
+        for (const [id, chunk] of buffered) if (id === result.id) terminal.write(chunk)
+        buffered = []
+
         refit()
         terminal.focus()
       },
@@ -96,6 +141,7 @@ export function TerminalPanel(props: TerminalPanelProps): JSX.Element {
       observer.disconnect()
       unsubscribe?.()
       terminal.dispose()
+      buffered = []
       // The pty itself stays alive in the main process, keyed by the project.
     })
   })

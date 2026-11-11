@@ -19,6 +19,7 @@ import { ChatComposer } from '@renderer/features/chat/ChatComposer'
 import { ChatMessageRow, type ChatMessageView } from '@renderer/features/chat/ChatMessageRow'
 import { ApprovalDialog } from '@renderer/features/chat/ApprovalDialog'
 import { IconButton } from '@renderer/components/ui/IconButton'
+import { PixelText } from '@renderer/components/ui/PixelText'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -548,6 +549,12 @@ export default function SessionView(): JSX.Element {
             fallback={
               <div class="flex min-h-0 flex-1 flex-col items-center justify-center px-3 pb-24">
                 <div class="flex w-full max-w-186 flex-col gap-3">
+                  {/* The quiet wordmark over an empty session, like opencode's centered start view. */}
+                  <PixelText
+                    text="yoke"
+                    pixel={20}
+                    class="justify-center pb-6 text-foreground-muted/40"
+                  />
                   {composer()}
                   <ConnectHint />
                   <Show when={error()}>

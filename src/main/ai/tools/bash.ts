@@ -4,13 +4,19 @@ import { promisify } from 'node:util'
 import { tool } from 'ai'
 import { z } from 'zod'
 
+import type { ApprovalRequester } from '../approval.service'
+
 const run = promisify(exec)
 
 const MAX_OUTPUT = 40_000
 const MAX_TIMEOUT = 120_000
 
-/** Runs a shell command inside the project directory. */
-export function createBashTool(directory: string) {
+/**
+ * Runs a shell command inside the project directory. Every command waits for
+ * explicit user approval first, like opencode's bash permission prompt;
+ * without approval the command never executes.
+ */
+export function createBashTool(directory: string, approval?: ApprovalRequester) {
   return tool({
     description:
       'Run a shell command in the project directory. Use it for builds, tests, and git. Output is truncated.',
@@ -31,6 +37,10 @@ export function createBashTool(directory: string) {
       command: string
       timeout?: number
     }) => {
+      if (approval && !(await approval.request(command))) {
+        throw new Error('Command was not approved by the user')
+      }
+
       try {
         const { stdout, stderr } = await run(command, {
           cwd: directory,

@@ -12,6 +12,7 @@ import type {
   ProviderStatus
 } from '../shared/ai'
 import type { FilePreview, FileTreeNode } from '../shared/files'
+import type { ProjectKind } from '../shared/project-kind'
 import type { ReviewFileDiff, ReviewSummary } from '../shared/review'
 import type { TerminalStartResult } from '../shared/terminal'
 
@@ -19,8 +20,8 @@ export type Project = typeof projects.$inferSelect
 export type Session = typeof sessions.$inferSelect
 export type SessionMessage = typeof SessionMessageTable.$inferSelect
 
-/** A project row as returned by `projects:list`, with its sessions preloaded. */
-export type ProjectWithSessions = Project & { sessions: Session[] }
+/** A project row as returned by `projects:list`, with its sessions preloaded and stack detected. */
+export type ProjectWithSessions = Project & { sessions: Session[]; kind: ProjectKind }
 
 /** A session row returned by `sessions:get`, with its project attached. */
 export type SessionWithProject = Session & { project: Project }

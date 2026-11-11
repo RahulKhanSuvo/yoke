@@ -119,3 +119,25 @@ export interface ChatStreamError {
   requestId: string
   message: string
 }
+
+// ---------------------------------------------------------------------------
+// Tool approvals
+// ---------------------------------------------------------------------------
+
+/**
+ * The main process asks the renderer to approve a privileged tool call
+ * (currently `bash`) before it runs. Unanswered requests are denied.
+ */
+export interface ApprovalRequest {
+  requestId: string
+  approvalId: string
+  command: string
+}
+
+export type ApprovalDecision = 'allow' | 'allow-session' | 'deny'
+
+export interface ApprovalResponse {
+  requestId: string
+  approvalId: string
+  decision: ApprovalDecision
+}

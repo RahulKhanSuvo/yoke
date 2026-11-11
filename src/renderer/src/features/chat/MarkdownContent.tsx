@@ -1,5 +1,6 @@
 import { createMemo, createSignal, For, Show, type JSX } from 'solid-js'
 import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import { HugeiconsIcon } from '@hugeicons/solid-js'
 import Copy01Icon from '@hugeicons/core-free-icons/Copy01Icon'
 import CheckmarkCircle02Icon from '@hugeicons/core-free-icons/CheckmarkCircle02Icon'
@@ -41,7 +42,15 @@ export function MarkdownContent(props: MarkdownContentProps): JSX.Element {
       breaks: true
     }) as string
 
-    return { html, blocks }
+    // Model output is untrusted data: strip scripts, event handlers, and
+    // javascript: URLs before it reaches innerHTML. The `data-code-block`
+    // placeholder attributes survive sanitization (data-* is allowed).
+    const clean = DOMPurify.sanitize(html, {
+      FORBID_TAGS: ['style', 'iframe', 'form', 'input'],
+      FORBID_ATTR: ['style']
+    })
+
+    return { html: clean, blocks }
   })
 
   // Split HTML around the data-code-block placeholders

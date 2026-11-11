@@ -1,8 +1,8 @@
-import { ElectronAPI } from '@electron-toolkit/preload'
-
 import type { projects } from '../main/database/schema/project'
 import type { SessionMessageTable, sessions } from '../main/database/schema/session'
 import type {
+  ApprovalRequest,
+  ApprovalResponse,
   ChatSendRequest,
   ChatStreamChunk,
   ChatStreamDone,
@@ -11,7 +11,9 @@ import type {
   ProviderId,
   ProviderStatus
 } from '../shared/ai'
+import type { FilePreview, FileTreeNode } from '../shared/files'
 import type { ReviewFileDiff, ReviewSummary } from '../shared/review'
+import type { TerminalStartResult } from '../shared/terminal'
 
 export type Project = typeof projects.$inferSelect
 export type Session = typeof sessions.$inferSelect
@@ -42,6 +44,10 @@ export interface PreloadApi {
     removeKey: (providerId: ProviderId) => Promise<{ success: true }>
     send: (request: ChatSendRequest) => Promise<{ success: boolean; messageId?: string }>
     cancel: (requestId: string) => Promise<void>
+    /** Answer a bash approval dialog. */
+    respondApproval: (response: ApprovalResponse) => Promise<void>
+    /** Subscribe to pending tool approval requests. */
+    onApprovalRequest: (listener: (payload: ApprovalRequest) => void) => () => void
     /** Subscribe to streamed text; returns an unsubscribe function. */
     onChunk: (listener: (payload: ChatStreamChunk) => void) => () => void
     /** Subscribe to tool call start/finish events. */
@@ -55,11 +61,34 @@ export interface PreloadApi {
     /** Read a single changed file's unified diff. */
     file: (directory: string, path: string) => Promise<ReviewFileDiff | null>
   }
+  files: {
+    /** One level of the project tree; subPath is relative to the project root. */
+    tree: (directory: string, subPath: string) => Promise<FileTreeNode[]>
+    /** A capped text preview of one project file. */
+    read: (directory: string, filePath: string) => Promise<FilePreview | null>
+  }
+  terminal: {
+    /** Starts (or reattaches to) the persistent shell for a project directory. */
+    start: (directory: string, cols: number, rows: number) => Promise<TerminalStartResult>
+    /** Writes user keystrokes to the pty. */
+    write: (id: string, data: string) => Promise<void>
+    /** Resizes the pty when the pane changes size. */
+    resize: (id: string, cols: number, rows: number) => Promise<void>
+    /** Kills the pty when the terminal tab closes. */
+    stop: (id: string) => Promise<void>
+    /** Subscribes to pty output; returns the unsubscribe function. */
+    onData: (handler: (id: string, chunk: string) => void) => () => void
+  }
 }
 
 declare global {
   interface Window {
-    electron: ElectronAPI
+    /** Mirror of @electron-toolkit/preload's electronAPI, kept sandbox-safe. */
+    electron: {
+      ipcRenderer: import('electron').IpcRenderer
+      webFrame: import('electron').WebFrame
+      process: NodeJS.Process
+    }
     api: PreloadApi
   }
 }

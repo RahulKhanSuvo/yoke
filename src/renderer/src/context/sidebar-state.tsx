@@ -1,3 +1,4 @@
+import { getAppState, setAppState } from '@renderer/lib/app-state'
 import {
   createContext,
   createEffect,
@@ -19,11 +20,7 @@ export interface SidebarState {
 const SidebarContext = createContext<SidebarState>()
 
 function readStored(): boolean {
-  try {
-    return localStorage.getItem(STORAGE_KEY) === 'true'
-  } catch {
-    return false
-  }
+  return getAppState(STORAGE_KEY) === 'true'
 }
 
 /** Holds the sidebar's open/collapsed state for the whole shell, like opencode's `appearance.sidebarOpen`. */
@@ -38,11 +35,7 @@ export function SidebarProvider(props: ParentProps) {
 
   // Persist the state across restarts, like opencode's settings store.
   createEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, String(collapsed()))
-    } catch {
-      // Storage can be unavailable; the layout still works without it.
-    }
+    setAppState(STORAGE_KEY, String(collapsed()))
   })
 
   return <SidebarContext.Provider value={state}>{props.children}</SidebarContext.Provider>

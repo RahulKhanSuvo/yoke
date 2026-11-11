@@ -1,4 +1,5 @@
 import { createResource, createSignal } from 'solid-js'
+import { deleteAppState, getAppState, setAppState } from '@renderer/lib/app-state'
 import type { AgentId, ModelInfo, ProviderId, ProviderStatus } from '@shared/ai'
 import { AGENTS, DEFAULT_AGENT_ID, findAgent, isAgentId } from '@shared/agents'
 
@@ -12,7 +13,7 @@ const AGENT_STORAGE_KEY = 'yoke.ai.agent'
 
 function readStoredModel(): SelectedModel | undefined {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = getAppState(STORAGE_KEY)
     if (!raw) return undefined
 
     const parsed = JSON.parse(raw) as Partial<SelectedModel>
@@ -37,7 +38,7 @@ const [picked, setPicked] = createSignal<SelectedModel | undefined>(readStoredMo
 
 function readStoredAgent(): AgentId {
   try {
-    const raw = localStorage.getItem(AGENT_STORAGE_KEY)
+    const raw = getAppState(AGENT_STORAGE_KEY)
 
     return isAgentId(raw) ? raw : DEFAULT_AGENT_ID
   } catch {
@@ -51,12 +52,7 @@ const selectedAgent = () => findAgent(agentId())
 
 const setSelectedAgent = (id: AgentId): void => {
   setAgentId(id)
-
-  try {
-    localStorage.setItem(AGENT_STORAGE_KEY, id)
-  } catch {
-    // Storage can be unavailable; the in-memory pick still works.
-  }
+  setAppState(AGENT_STORAGE_KEY, id)
 }
 
 const provider = (id?: ProviderId): ProviderStatus | undefined =>
@@ -100,12 +96,8 @@ const selectedModelInfo = (): { provider: ProviderStatus; model: ModelInfo } | u
 const setSelectedModel = (selection?: SelectedModel): void => {
   setPicked(selection)
 
-  try {
-    if (selection) localStorage.setItem(STORAGE_KEY, JSON.stringify(selection))
-    else localStorage.removeItem(STORAGE_KEY)
-  } catch {
-    // Storage can be unavailable; the in-memory pick still works.
-  }
+  if (selection) setAppState(STORAGE_KEY, JSON.stringify(selection))
+  else deleteAppState(STORAGE_KEY)
 }
 
 const refreshProviders = async (): Promise<void> => {

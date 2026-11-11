@@ -1,5 +1,11 @@
 import { BrowserWindow, dialog, ipcMain } from 'electron'
-import { createProject, deleteProject, getProjects } from '../services/project.service'
+import {
+  createProject,
+  deleteProject,
+  exportProject,
+  getProjects,
+  renameProject
+} from '../services/project.service'
 
 export function registerProjectIpc(): void {
   ipcMain.handle('projects:select-folder', async (event) => {
@@ -25,5 +31,17 @@ export function registerProjectIpc(): void {
   })
   ipcMain.handle('projects:delete', async (_, id: string) => {
     return deleteProject(id)
+  })
+  ipcMain.handle('projects:rename', async (_, id: string, name: string) => {
+    return renameProject(id, name)
+  })
+  ipcMain.handle('projects:export', async (event, id: string) => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+
+    if (!window) {
+      throw new Error('Application window not found')
+    }
+
+    return exportProject(id, window)
   })
 }

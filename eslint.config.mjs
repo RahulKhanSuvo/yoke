@@ -1,9 +1,8 @@
 import { defineConfig } from 'eslint/config'
 import tseslint from '@electron-toolkit/eslint-config-ts'
 import eslintConfigPrettier from '@electron-toolkit/eslint-config-prettier'
-import eslintPluginReact from 'eslint-plugin-react'
-import eslintPluginReactHooks from 'eslint-plugin-react-hooks'
-import eslintPluginReactRefresh from 'eslint-plugin-react-refresh'
+import solidPlugin from 'eslint-plugin-solid'
+import solidConfig from 'eslint-plugin-solid/configs/typescript'
 
 export default defineConfig(
   {
@@ -12,24 +11,15 @@ export default defineConfig(
 
   tseslint.configs.recommended,
 
-  eslintPluginReact.configs.flat.recommended,
-  eslintPluginReact.configs.flat['jsx-runtime'],
-
   {
-    settings: {
-      react: {
-        version: 'detect'
-      }
-    }
-  },
-
-  {
+    // SolidJS, not React: use the Solid plugin's TypeScript preset.
     files: ['src/renderer/src/**/*.{js,jsx,ts,tsx}'],
     plugins: {
-      'react-hooks': eslintPluginReactHooks,
-      'react-refresh': eslintPluginReactRefresh
+      solid: solidPlugin
     },
+    ...solidConfig,
     rules: {
+      ...solidConfig.rules,
       '@typescript-eslint/explicit-function-return-type': 'off'
     }
   },

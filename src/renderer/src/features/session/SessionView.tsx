@@ -11,21 +11,27 @@ import {
 import { useNavigate, useParams, useSearchParams } from '@solidjs/router'
 import { makeEventListener } from '@solid-primitives/event-listener'
 import { HugeiconsIcon } from '@hugeicons/solid-js'
+import Delete02Icon from '@hugeicons/core-free-icons/Delete02Icon'
 import Folder01Icon from '@hugeicons/core-free-icons/Folder01Icon'
+import MoreVerticalIcon from '@hugeicons/core-free-icons/MoreVerticalIcon'
 import PanelRightIcon from '@hugeicons/core-free-icons/PanelRightIcon'
 import { ChatComposer } from '@renderer/features/chat/ChatComposer'
 import { ChatMessageRow, type ChatMessageView } from '@renderer/features/chat/ChatMessageRow'
+import { ApprovalDialog } from '@renderer/features/chat/ApprovalDialog'
 import { IconButton } from '@renderer/components/ui/IconButton'
 import {
-  ReviewSidePanel,
-  markReviewTabOpen
-} from '@renderer/features/session/review/ReviewSidePanel'
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@renderer/components/ui/dropdown-menu'
+import { ReviewSidePanel, ensureSideTab } from '@renderer/features/session/review/ReviewSidePanel'
 import { UsageRing } from '@renderer/features/session/UsageRing'
 import { aiStore } from '@renderer/features/ai/ai-store'
 import { projectColor } from '@renderer/features/projects/project-color'
 import { notifyProjectsChanged } from '@renderer/features/projects/project-events'
 import { closeSessionTab, openSessionTab } from '@renderer/features/session/session-tabs'
-import type { MessagePart } from '@shared/ai'
+import type { ApprovalDecision, ApprovalRequest, MessagePart } from '@shared/ai'
 
 const REVIEW_OPEN_KEY = 'yoke.review-open'
 
@@ -61,6 +67,8 @@ export default function SessionView(): JSX.Element {
   /** Tokens accumulated on the session, for the header's context ring. */
   const [tokens, setTokens] = createSignal(0)
   const [reviewOpen, setReviewOpen] = createSignal(readReviewOpen())
+  /** A bash command the agent is waiting for the user to approve. */
+  const [pendingApproval, setPendingApproval] = createSignal<ApprovalRequest>()
   /** Bumped after a turn so the Review panel reloads the files the agent touched. */
   const [reviewRefresh, setReviewRefresh] = createSignal(0)
 
@@ -192,6 +200,7 @@ export default function SessionView(): JSX.Element {
     resetStream()
     setError()
     setDraft('')
+    setPendingApproval()
     activeRequestId = undefined
   })
 
@@ -204,6 +213,12 @@ export default function SessionView(): JSX.Element {
   })
 
   onMount(() => {
+    const offApproval = window.api.ai.onApprovalRequest((payload) => {
+      if (payload.requestId !== activeRequestId) return
+
+      setPendingApproval(payload)
+    })
+
     const offChunk = window.api.ai.onChunk((payload) => {
       if (payload.requestId !== activeRequestId) return
 
@@ -220,6 +235,7 @@ export default function SessionView(): JSX.Element {
       if (payload.requestId !== activeRequestId) return
 
       activeRequestId = undefined
+      setPendingApproval()
       setMessages((previous) => [
         ...previous,
         {
@@ -251,6 +267,7 @@ export default function SessionView(): JSX.Element {
       activeRequestId = undefined
       resetStream()
       setBusy(false)
+      setPendingApproval()
 
       if (payload.message !== 'Request cancelled') {
         setError(payload.message)
@@ -262,20 +279,34 @@ export default function SessionView(): JSX.Element {
     })
 
     onCleanup(() => {
+      offApproval()
       offChunk()
       offPart()
       offDone()
       offError()
     })
 
-    // Open the side panel straight to the Review tab, like opencode's review.toggle.
+    // Open the side panel straight to a tab, like opencode's panel shortcuts:
+    // review.toggle (Ctrl Alt R), browser (B), terminal (T), files (F).
     makeEventListener(document, 'keydown', (event) => {
       if (!event.ctrlKey || !event.altKey || event.metaKey || event.shiftKey) return
 
-      if (event.key.toLowerCase() !== 'r' || event.defaultPrevented) return
+      const key = event.key.toLowerCase()
+      const kind =
+        key === 'r'
+          ? 'review'
+          : key === 'b'
+            ? 'browser'
+            : key === 't'
+              ? 'terminal'
+              : key === 'f'
+                ? 'files'
+                : undefined
+
+      if (!kind || event.defaultPrevented) return
 
       event.preventDefault()
-      markReviewTabOpen()
+      ensureSideTab(kind)
       setReviewOpen(true)
     })
   })
@@ -340,6 +371,20 @@ export default function SessionView(): JSX.Element {
     if (activeRequestId) void window.api.ai.cancel(activeRequestId)
   }
 
+  /** Answers the approval dialog; the main process resumes or fails the tool. */
+  const decideApproval = (decision: ApprovalDecision) => {
+    const approval = pendingApproval()
+
+    if (!approval) return
+
+    setPendingApproval()
+    void window.api.ai.respondApproval({
+      requestId: approval.requestId,
+      approvalId: approval.approvalId,
+      decision
+    })
+  }
+
   // A prompt handed over from the landing page: send it once the transcript is ready.
   createEffect(() => {
     const prompt = typeof searchParams.prompt === 'string' ? searchParams.prompt : undefined
@@ -394,51 +439,81 @@ export default function SessionView(): JSX.Element {
     return current?.role === 'user' && previous?.role === 'user' ? 'mt-1' : 'mt-4'
   }
 
+  const deleteCurrentSession = async (): Promise<void> => {
+    const id = sessionId()
+
+    if (!id) return
+
+    await window.api.sessions.delete(id)
+    closeSessionTab(id)
+    notifyProjectsChanged()
+    navigate('/')
+  }
+
   return (
-    <div class="flex h-full flex-col bg-surface">
-      <header class="flex h-12 shrink-0 items-center gap-2 px-4">
-        <Show when={session()?.project}>
-          {(project) => (
-            <>
-              <span
-                class={`flex size-5 shrink-0 items-center justify-center rounded-[5px] ${projectColor(project().id)}`}
+    <div class="flex h-full bg-surface">
+      <div class="flex min-w-0 flex-1 flex-col">
+        <header class="flex h-12 shrink-0 items-center gap-2 px-4">
+          <Show when={session()?.project}>
+            {(project) => (
+              <>
+                <span
+                  class={`flex size-5 shrink-0 items-center justify-center rounded-[5px] ${projectColor(project().id)}`}
+                >
+                  <HugeiconsIcon icon={Folder01Icon} size={12} />
+                </span>
+                <span class="min-w-0 truncate text-[13px] tracking-[-0.04px] text-foreground-muted">
+                  {project().name}
+                </span>
+                <span class="shrink-0 text-[13px] text-foreground-muted/40">/</span>
+              </>
+            )}
+          </Show>
+
+          <span class="min-w-0 truncate text-[13px] font-medium tracking-[-0.04px] text-foreground">
+            {session()?.title ?? 'Session'}
+          </span>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              class="flex size-6 shrink-0 items-center justify-center rounded-[6px] text-foreground-muted transition hover:bg-surface-mute hover:text-foreground focus-visible:outline-none"
+              aria-label="Session options"
+            >
+              <HugeiconsIcon icon={MoreVerticalIcon} size={14} />
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent class="min-w-40">
+              <DropdownMenuItem
+                class="text-[12.5px] text-danger"
+                onSelect={() => void deleteCurrentSession()}
               >
-                <HugeiconsIcon icon={Folder01Icon} size={12} />
-              </span>
-              <span class="min-w-0 truncate text-[13px] tracking-[-0.04px] text-foreground-muted">
-                {project().name}
-              </span>
-              <span class="shrink-0 text-[13px] text-foreground-muted/40">/</span>
-            </>
-          )}
-        </Show>
+                <HugeiconsIcon icon={Delete02Icon} size={14} />
+                Delete session
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-        <span class="min-w-0 truncate text-[13px] font-medium tracking-[-0.04px] text-foreground">
-          {session()?.title ?? 'Session'}
-        </span>
-
-        <span class="ml-auto flex shrink-0 items-center gap-2 pl-3">
-          <UsageRing
-            tokens={tokens}
-            contextWindow={() => aiStore.selectedModelInfo()?.model.contextWindow}
-          />
-          <IconButton
-            label={reviewOpen() ? 'Hide review panel' : 'Show review panel'}
-            aria-pressed={reviewOpen()}
-            class="p-1 text-foreground-muted hover:bg-surface-mute hover:text-foreground"
-            onClick={() => setReviewOpen((value) => !value)}
-          >
-            <HugeiconsIcon
-              icon={PanelRightIcon}
-              size={16}
-              class={reviewOpen() ? 'text-foreground' : undefined}
+          <span class="ml-auto flex shrink-0 items-center gap-2 pl-3">
+            <UsageRing
+              tokens={tokens}
+              contextWindow={() => aiStore.selectedModelInfo()?.model.contextWindow}
             />
-          </IconButton>
-        </span>
-      </header>
+            <IconButton
+              label={reviewOpen() ? 'Hide review panel' : 'Show review panel'}
+              aria-pressed={reviewOpen()}
+              class="p-1 text-foreground-muted hover:bg-surface-mute hover:text-foreground"
+              onClick={() => setReviewOpen((value) => !value)}
+            >
+              <HugeiconsIcon
+                icon={PanelRightIcon}
+                size={16}
+                class={reviewOpen() ? 'text-foreground' : undefined}
+              />
+            </IconButton>
+          </span>
+        </header>
 
-      <div class="flex min-h-0 flex-1">
-        <div class="flex min-w-0 flex-1 flex-col">
+        <div class="flex min-h-0 flex-1 flex-col">
           <Show
             when={hasConversation()}
             fallback={
@@ -503,18 +578,20 @@ export default function SessionView(): JSX.Element {
             </div>
           </Show>
         </div>
-
-        {/* The Review pane mirrors opencode's right-side session panel. */}
-        <Show when={reviewOpen() ? session()?.directory : undefined}>
-          {(directory) => (
-            <ReviewSidePanel
-              directory={directory()}
-              refreshKey={reviewRefresh()}
-              onClose={() => setReviewOpen(false)}
-            />
-          )}
-        </Show>
       </div>
+
+      {/* The Review pane mirrors opencode's right-side session panel. */}
+      <Show when={reviewOpen() ? session()?.directory : undefined}>
+        {(directory) => (
+          <ReviewSidePanel
+            directory={directory()}
+            refreshKey={reviewRefresh()}
+            onClose={() => setReviewOpen(false)}
+          />
+        )}
+      </Show>
+
+      <ApprovalDialog approval={pendingApproval()} onDecide={decideApproval} />
     </div>
   )
 

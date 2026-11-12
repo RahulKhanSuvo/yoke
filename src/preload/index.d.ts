@@ -47,6 +47,8 @@ export interface PreloadApi {
     saveKey: (providerId: ProviderId, apiKey: string) => Promise<{ success: true }>
     removeKey: (providerId: ProviderId) => Promise<{ success: true }>
     send: (request: ChatSendRequest) => Promise<{ success: boolean; messageId?: string }>
+    /** Opens the composer's "Images and files" picker. */
+    pickAttachments: () => Promise<string[]>
     cancel: (requestId: string) => Promise<void>
     /** Answer a bash approval dialog. */
     respondApproval: (response: ApprovalResponse) => Promise<void>

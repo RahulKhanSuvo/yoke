@@ -35,6 +35,9 @@ export const aiApi = {
   send: (request: ChatSendRequest): Promise<{ success: boolean; messageId?: string }> =>
     ipcRenderer.invoke('ai:chat:send', request),
 
+  /** Opens the file picker for composer attachments; returns chosen paths. */
+  pickAttachments: (): Promise<string[]> => ipcRenderer.invoke('ai:attachments:pick'),
+
   cancel: (requestId: string): Promise<void> => ipcRenderer.invoke('ai:chat:cancel', requestId),
 
   /** Answers a bash approval dialog raised by the main process. */

@@ -18,6 +18,7 @@ import PanelRightIcon from '@hugeicons/core-free-icons/PanelRightIcon'
 import { ChatComposer } from '@renderer/features/chat/ChatComposer'
 import { ChatMessageRow, type ChatMessageView } from '@renderer/features/chat/ChatMessageRow'
 import { ApprovalDialog } from '@renderer/features/chat/ApprovalDialog'
+import { QuestionDialog } from '@renderer/features/chat/QuestionDialog'
 import { IconButton } from '@renderer/components/ui/IconButton'
 import { PixelText } from '@renderer/components/ui/PixelText'
 import {
@@ -38,7 +39,7 @@ import { notifyProjectsChanged } from '@renderer/features/projects/project-event
 import { getAppState, setAppState } from '@renderer/lib/app-state'
 import { useSidebar } from '@renderer/context/sidebar-state'
 import { closeSessionTab, openSessionTab } from '@renderer/features/session/session-tabs'
-import type { ApprovalDecision, ApprovalRequest, MessagePart } from '@shared/ai'
+import type { ApprovalDecision, ApprovalRequest, MessagePart, QuestionRequest } from '@shared/ai'
 
 const REVIEW_OPEN_KEY = 'yoke.review-open'
 
@@ -75,6 +76,8 @@ export default function SessionView(): JSX.Element {
   const [reviewOpen, setReviewOpen] = createSignal(readReviewOpen())
   /** A bash command the agent is waiting for the user to approve. */
   const [pendingApproval, setPendingApproval] = createSignal<ApprovalRequest>()
+  /** A question the agent asked mid-task through the question tool. */
+  const [pendingQuestion, setPendingQuestion] = createSignal<QuestionRequest>()
   /** Bumped after a turn so the Review panel reloads the files the agent touched. */
   const [reviewRefresh, setReviewRefresh] = createSignal(0)
 
@@ -203,6 +206,7 @@ export default function SessionView(): JSX.Element {
     setError()
     setDraft('')
     setPendingApproval()
+    setPendingQuestion()
     activeRequestId = undefined
   })
 
@@ -219,6 +223,12 @@ export default function SessionView(): JSX.Element {
       if (payload.requestId !== activeRequestId) return
 
       setPendingApproval(payload)
+    })
+
+    const offQuestion = window.api.ai.onQuestionRequest((payload) => {
+      if (payload.requestId !== activeRequestId) return
+
+      setPendingQuestion(payload)
     })
 
     const offChunk = window.api.ai.onChunk((payload) => {
@@ -238,6 +248,7 @@ export default function SessionView(): JSX.Element {
 
       activeRequestId = undefined
       setPendingApproval()
+      setPendingQuestion()
       setMessages((previous) => [
         ...previous,
         {
@@ -269,6 +280,7 @@ export default function SessionView(): JSX.Element {
       activeRequestId = undefined
       resetStream()
       setBusy(false)
+      setPendingQuestion()
       setPendingApproval()
 
       if (payload.message !== 'Request cancelled') {
@@ -282,6 +294,7 @@ export default function SessionView(): JSX.Element {
 
     onCleanup(() => {
       offApproval()
+      offQuestion()
       offChunk()
       offPart()
       offDone()
@@ -418,6 +431,20 @@ export default function SessionView(): JSX.Element {
       requestId: approval.requestId,
       approvalId: approval.approvalId,
       decision
+    })
+  }
+
+  /** Answers the agent's question; the main process resumes the tool. */
+  const answerQuestion = (answers: string[]) => {
+    const question = pendingQuestion()
+
+    if (!question) return
+
+    setPendingQuestion()
+    void window.api.ai.answerQuestion({
+      requestId: question.requestId,
+      questionId: question.questionId,
+      answers
     })
   }
 
@@ -635,6 +662,7 @@ export default function SessionView(): JSX.Element {
 
               <div class="shrink-0 px-3 pb-4">
                 <div class="mx-auto flex w-full max-w-186 flex-col gap-3">
+                  <QuestionDialog question={pendingQuestion()} onAnswer={answerQuestion} />
                   {composer()}
                   <ConnectHint />
                 </div>

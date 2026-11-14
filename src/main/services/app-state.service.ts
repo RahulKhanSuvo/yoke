@@ -9,6 +9,13 @@ export function getAllAppState(): Record<string, string> {
   return Object.fromEntries(rows.map((row) => [row.key, row.value]))
 }
 
+/** Reads one persisted value, or undefined when the key has never been set. */
+export function getAppState(key: string): string | undefined {
+  const row = db.select().from(appState).where(eq(appState.key, key)).get()
+
+  return row?.value
+}
+
 /** Upserts one key. better-sqlite3 is synchronous, so writes land immediately. */
 export function setAppState(key: string, value: string): void {
   db.insert(appState)

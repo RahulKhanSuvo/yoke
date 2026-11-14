@@ -1,6 +1,7 @@
 import { createResource, createSignal } from 'solid-js'
 import { deleteAppState, getAppState, setAppState } from '@renderer/lib/app-state'
-import type { AgentId, ModelInfo, ProviderId, ProviderStatus } from '@shared/ai'
+import { isThinkingLevel } from '@shared/ai'
+import type { AgentId, ModelInfo, ProviderId, ProviderStatus, ThinkingLevel } from '@shared/ai'
 import { AGENTS, DEFAULT_AGENT_ID, findAgent, isAgentId } from '@shared/agents'
 
 export interface SelectedModel {
@@ -10,6 +11,7 @@ export interface SelectedModel {
 
 const STORAGE_KEY = 'yoke.ai.selected-model'
 const AGENT_STORAGE_KEY = 'yoke.ai.agent'
+const THINKING_STORAGE_KEY = 'yoke.ai.thinking'
 
 function readStoredModel(): SelectedModel | undefined {
   try {
@@ -46,6 +48,17 @@ function readStoredAgent(): AgentId {
   }
 }
 
+/** Selected thinking level, persisted like opencode's model variant. */
+const readStoredThinking = (): ThinkingLevel => {
+  const raw = getAppState(THINKING_STORAGE_KEY)
+
+  // Legacy boolean values from the on/off toggle migrate to a real level.
+  if (raw === '1') return 'medium'
+  if (raw === '0' || raw === undefined) return 'default'
+
+  return isThinkingLevel(raw) ? raw : 'default'
+}
+
 const [agentId, setAgentId] = createSignal<AgentId>(readStoredAgent())
 
 const selectedAgent = () => findAgent(agentId())
@@ -53,6 +66,24 @@ const selectedAgent = () => findAgent(agentId())
 const setSelectedAgent = (id: AgentId): void => {
   setAgentId(id)
   setAppState(AGENT_STORAGE_KEY, id)
+}
+
+const [thinking, setThinkingSignal] = createSignal<ThinkingLevel>(readStoredThinking())
+
+const setThinking = (value: ThinkingLevel): void => {
+  setThinkingSignal(value)
+  setAppState(THINKING_STORAGE_KEY, value)
+}
+
+/** The selected model's thinking levels, falling back to the full ladder. */
+const selectedModelThinkingLevels = (): ThinkingLevel[] => {
+  const info = selectedModelInfo()
+
+  if (!info) return []
+  if (info.model.levels) return info.model.levels
+  if (info.model.reasoning) return ['low', 'medium', 'high', 'max']
+
+  return []
 }
 
 const provider = (id?: ProviderId): ProviderStatus | undefined =>
@@ -114,6 +145,12 @@ export const aiStore = {
   agents: AGENTS,
   selectedAgent,
   setSelectedAgent,
+  /** Whether the current model offers extended thinking at all. */
+  selectedModelSupportsThinking: () => selectedModelThinkingLevels().length > 0,
+  /** The thinking levels the current model supports, for the menu. */
+  selectedModelThinkingLevels,
+  thinking,
+  setThinking,
   /** True once at least one provider has a stored API key. */
   hasConfiguredProvider: () => (providers() ?? []).some((entry) => entry.configured)
 }

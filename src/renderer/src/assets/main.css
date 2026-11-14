@@ -116,6 +116,15 @@
   --diff-word-del: rgb(241 72 79 / 0.22);
   --diff-hunk-bg: #f7fafd;
   --diff-hunk-gutter: #eaf3fb;
+
+  /* opencode-style syntax hues for chat code cards */
+  --code-kw: #bd5200;
+  --code-str: #a2349e;
+  --code-type: #0e7490;
+  --code-fn: #2e6bb8;
+  --code-num: #0b7285;
+  --code-comment: #97a0a8;
+  --code-tag: #c4551b;
 }
 
 .dark {
@@ -183,6 +192,15 @@
   --diff-word-del: rgb(241 116 113 / 0.32);
   --diff-hunk-bg: #0f1520;
   --diff-hunk-gutter: #0c1928;
+
+  /* dark-theme syntax hues */
+  --code-kw: #e8955c;
+  --code-str: #c586c0;
+  --code-type: #4ec9b0;
+  --code-fn: #9cdcfe;
+  --code-num: #b5cea8;
+  --code-comment: #6b7280;
+  --code-tag: #e8955c;
 }
 
 @layer base {
@@ -191,6 +209,35 @@
   ::before,
   ::backdrop {
     border-color: var(--color-border);
+  }
+
+  /* syntax token classes used by the chat code highlighter */
+  .tok-kw {
+    color: var(--code-kw);
+  }
+
+  .tok-str {
+    color: var(--code-str);
+  }
+
+  .tok-type {
+    color: var(--code-type);
+  }
+
+  .tok-fn {
+    color: var(--code-fn);
+  }
+
+  .tok-num {
+    color: var(--code-num);
+  }
+
+  .tok-comment {
+    color: var(--code-comment);
+  }
+
+  .tok-tag {
+    color: var(--code-tag);
   }
 }
 

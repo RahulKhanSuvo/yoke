@@ -9,6 +9,7 @@ import { systemPrompt } from './agents'
 import { resolveModel } from './model-resolver'
 import { buildTools } from './tools'
 import type { ApprovalRequester } from './approval.service'
+import type { QuestionAsker } from './tools/question'
 import { findAgent } from '../../shared/agents'
 
 const MAX_OUTPUT = 20_000
@@ -112,6 +113,8 @@ export interface AgentRunOptions {
   agentId: AgentId
   /** The session's project root; tools resolve every path inside it. */
   directory: string
+  /** Owning session id; scopes per-session tool data such as todos. */
+  sessionId?: string
   messages: ModelMessage[]
   /** Extended-thinking level; "default" keeps the provider's own behavior. */
   thinking?: ThinkingLevel
@@ -120,6 +123,8 @@ export interface AgentRunOptions {
   signal?: AbortSignal
   /** When set, bash commands wait for user approval before running. */
   approval?: ApprovalRequester
+  /** When set, the agent can pause and ask the user a question. */
+  question?: QuestionAsker
 }
 
 export interface AgentCallbacks {
@@ -174,7 +179,13 @@ export async function runAgent(
     model,
     system: systemPrompt(agent.id, options.directory),
     messages: withAttachments(options.messages, options.attachments, options.directory),
-    tools: buildTools(options.directory, agent.tools, options.approval),
+    tools: buildTools(
+      options.directory,
+      agent.tools,
+      options.approval,
+      options.sessionId,
+      options.question
+    ),
     stopWhen: stepCountIs(agent.steps),
     abortSignal: options.signal,
     ...(thinking

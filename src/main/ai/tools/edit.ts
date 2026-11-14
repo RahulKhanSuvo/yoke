@@ -70,7 +70,16 @@ export function createEditTool(directory: string) {
 
       await writeFile(full, updated, 'utf8')
 
-      return `Updated ${path} (${replaceAll ? occurrences : 1} replacement${occurrences === 1 ? '' : 's'})`
+      const replacements = replaceAll ? occurrences : 1
+      const first = text.indexOf(oldString)
+      const line = first === -1 ? 1 : text.slice(0, first).split('\n').length
+
+      // Structured so the chat card can number diff rows like a patch.
+      return JSON.stringify({
+        summary: `Updated ${path} (${replacements} replacement${replacements === 1 ? '' : 's'})`,
+        line,
+        replacements
+      })
     }
   })
 }

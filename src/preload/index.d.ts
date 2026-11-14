@@ -3,6 +3,8 @@ import type { SessionMessageTable, sessions } from '../main/database/schema/sess
 import type {
   ApprovalRequest,
   ApprovalResponse,
+  QuestionRequest,
+  QuestionResponse,
   ChatSendRequest,
   ChatStreamChunk,
   ChatStreamDone,
@@ -54,6 +56,10 @@ export interface PreloadApi {
     respondApproval: (response: ApprovalResponse) => Promise<void>
     /** Subscribe to pending tool approval requests. */
     onApprovalRequest: (listener: (payload: ApprovalRequest) => void) => () => void
+    /** Answer an agent question dialog. */
+    answerQuestion: (response: QuestionResponse) => Promise<void>
+    /** Subscribe to pending agent question dialogs. */
+    onQuestionRequest: (listener: (payload: QuestionRequest) => void) => () => void
     /** Subscribe to streamed text; returns an unsubscribe function. */
     onChunk: (listener: (payload: ChatStreamChunk) => void) => () => void
     /** Subscribe to tool call start/finish events. */

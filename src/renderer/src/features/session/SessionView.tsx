@@ -64,6 +64,8 @@ export default function SessionView(): JSX.Element {
 
   const [messages, setMessages] = createSignal<ChatMessageView[]>([])
   const [draft, setDraft] = createSignal('')
+  /** Files and images staged through the composer's + menu, sent with the next turn. */
+  const [attachments, setAttachments] = createSignal<string[]>([])
   const [streamingText, setStreamingText] = createSignal('')
   const [streamingParts, setStreamingParts] = createSignal<MessagePart[]>([])
   const [busy, setBusy] = createSignal(false)
@@ -339,7 +341,8 @@ export default function SessionView(): JSX.Element {
     const id = sessionId()
     const model = aiStore.selectedModel()
 
-    if (!prompt || !id || busy()) return
+    if (!prompt && attachments().length === 0) return
+    if (!id || busy()) return
 
     if (!model) {
       setError(
@@ -353,9 +356,17 @@ export default function SessionView(): JSX.Element {
 
     setError()
     setDraft('')
+    const attached = [...attachments()]
+    setAttachments([])
     setMessages((previous) => [
       ...previous,
-      { id: `local-${crypto.randomUUID()}`, role: 'user', text: prompt }
+      {
+        id: `local-${crypto.randomUUID()}`,
+        role: 'user',
+        text: attached.length
+          ? `${prompt}${prompt ? '\n' : ''}${attached.map((file) => `[attached: ${file.split('/').pop()}]`).join(' ')}`
+          : prompt
+      }
     ])
     resetStream()
     setBusy(true)
@@ -370,7 +381,9 @@ export default function SessionView(): JSX.Element {
         providerId: model.providerId,
         modelId: model.modelId,
         agentId: aiStore.selectedAgent().id,
-        prompt
+        thinking: aiStore.thinking(),
+        attachments: attached,
+        prompt: prompt || 'Review the attached files.'
       })
 
       if (!result.success && activeRequestId === requestId) {
@@ -433,6 +446,21 @@ export default function SessionView(): JSX.Element {
       onSubmit={() => void sendMessage()}
       busy={busy()}
       onCancel={cancel}
+      attachments={attachments()}
+      onRemoveAttachment={(file) =>
+        setAttachments((current) => current.filter((item) => item !== file))
+      }
+      onAttachFiles={() => {
+        void window.api.ai.pickAttachments().then((files) => {
+          if (files.length) setAttachments((current) => [...new Set([...current, ...files])])
+        })
+      }}
+      onInsertPrefix={(prefix) => {
+        const current = draft()
+
+        if (current.trim() === '' || current.endsWith(' ')) setDraft(`${current}${prefix}`)
+        else setDraft(`${current} ${prefix}`)
+      }}
       placeholder={
         hasConversation()
           ? 'Add follow-up, / for commands, @ for context…'

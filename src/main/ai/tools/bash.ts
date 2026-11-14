@@ -37,6 +37,7 @@ export function createBashTool(directory: string, approval?: ApprovalRequester) 
       command: string
       timeout?: number
     }) => {
+      // Ensure safety by requiring user sign-off before running potentially destructive commands
       if (approval && !(await approval.request(command))) {
         throw new Error('Command was not approved by the user')
       }

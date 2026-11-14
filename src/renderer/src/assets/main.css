@@ -58,6 +58,20 @@
   --animate-content-show: content-show 0.2s ease-out;
   --animate-content-hide: content-hide 0.2s ease-out;
   --animate-caret-blink: caret-blink 1.25s ease-out infinite;
+
+  /* opencode-style diff palette (values in :root / .dark below) */
+  --color-diff-add-bg: var(--diff-add-bg);
+  --color-diff-add-fg: var(--diff-add-fg);
+  --color-diff-add-num: var(--diff-add-num);
+  --color-diff-add-bar: var(--diff-add-bar);
+  --color-diff-del-bg: var(--diff-del-bg);
+  --color-diff-del-fg: var(--diff-del-fg);
+  --color-diff-del-num: var(--diff-del-num);
+  --color-diff-del-bar: var(--diff-del-bar);
+  --color-diff-hunk-bg: var(--diff-hunk-bg);
+  --color-diff-hunk-gutter: var(--diff-hunk-gutter);
+  --color-diff-word-add: var(--diff-word-add);
+  --color-diff-word-del: var(--diff-word-del);
 }
 
 :root {
@@ -88,6 +102,43 @@
   --success-soft: #dcfce7;
   --warning-soft: #fef3c7;
   --error-soft: #fee2e2;
+
+  /* opencode diff palette: green/red line washes at the same alphas pierre uses */
+  --diff-add-bg: rgb(73 201 112 / 0.06);
+  --diff-add-fg: #14361d;
+  --diff-add-num: #1d783c;
+  --diff-add-bar: #198b43;
+  --diff-word-add: rgb(73 201 112 / 0.22);
+  --diff-del-bg: rgb(241 72 79 / 0.06);
+  --diff-del-fg: #461516;
+  --diff-del-num: #b82d35;
+  --diff-del-bar: #b82d35;
+  --diff-word-del: rgb(241 72 79 / 0.22);
+  --diff-hunk-bg: #f7fafd;
+  --diff-hunk-gutter: #eaf3fb;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: #101113;
+  --surface: #17181b;
+  --surface-soft: #1c1d21;
+  --surface-mute: #26272c;
+  --line: #303136;
+
+  --foreground: #f3f4f6;
+  --foreground-secondary: #a1a1aa;
+  --foreground-muted: #71717a;
+
+  --panel: #1c1d21;
+  --panel-hover: #26272c;
+
+  --primary: #8b9cfb;
+  --primary-foreground: #101113;
+
+  --success: #4ade80;
+  --warning: #fbtter: #eaf3fb;
 }
 
 .dark {
@@ -118,6 +169,20 @@
   --success-soft: #052e16;
   --warning-soft: #422006;
   --error-soft: #450a0a;
+
+  /* opencode dark-theme diff palette */
+  --diff-add-bg: rgb(75 213 134 / 0.1);
+  --diff-add-fg: #f3f4f6;
+  --diff-add-num: #96e3a6;
+  --diff-add-bar: #96e3a6;
+  --diff-word-add: rgb(75 213 134 / 0.32);
+  --diff-del-bg: rgb(241 116 113 / 0.1);
+  --diff-del-fg: #f3f4f6;
+  --diff-del-num: #f17471;
+  --diff-del-bar: #f17471;
+  --diff-word-del: rgb(241 116 113 / 0.32);
+  --diff-hunk-bg: #0f1520;
+  --diff-hunk-gutter: #0c1928;
 }
 
 @layer base {

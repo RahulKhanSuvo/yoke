@@ -43,7 +43,18 @@ export interface ProviderStatus extends ProviderInfo {
 export type AgentId = 'build' | 'plan'
 
 /** Tools an agent is allowed to call. */
-export type ToolName = 'read' | 'list' | 'glob' | 'grep' | 'write' | 'edit' | 'bash'
+export type ToolName =
+  | 'read'
+  | 'list'
+  | 'glob'
+  | 'grep'
+  | 'write'
+  | 'edit'
+  | 'bash'
+  | 'webfetch'
+  | 'todowrite'
+  | 'todoread'
+  | 'question'
 
 export interface AgentInfo {
   id: AgentId
@@ -156,4 +167,37 @@ export interface ApprovalResponse {
   requestId: string
   approvalId: string
   decision: ApprovalDecision
+}
+
+// ---------------------------------------------------------------------------
+// Agent questions
+// ---------------------------------------------------------------------------
+
+/** One selectable choice the agent offers the user. */
+export interface QuestionOption {
+  label: string
+  description?: string
+}
+
+/**
+ * The main process asks the renderer to answer a question the agent raised
+ * (the `question` tool). Unanswered questions expire and the turn continues
+ * without an answer.
+ */
+export interface QuestionRequest {
+  requestId: string
+  questionId: string
+  /** Short dialog title, e.g. "Implementation". */
+  header?: string
+  question: string
+  options: QuestionOption[]
+  /** Whether more than one option may be selected. */
+  multiple: boolean
+}
+
+export interface QuestionResponse {
+  requestId: string
+  questionId: string
+  /** Labels of the options the user picked. */
+  answers: string[]
 }

@@ -7,7 +7,19 @@ export interface ModelInfo {
   name: string
   /** Approximate context window in tokens, used for the session usage ring. */
   contextWindow?: number
+  /** Supports extended thinking, so the composer offers the thinking menu. */
+  reasoning?: boolean
+  /** Thinking levels this model supports, from the registry's effort options. */
+  levels?: ThinkingLevel[]
 }
+
+/** Extended-thinking levels, like opencode's reasoning variants. */
+export type ThinkingLevel = 'default' | 'low' | 'medium' | 'high' | 'max'
+
+export const THINKING_LEVELS: ThinkingLevel[] = ['default', 'low', 'medium', 'high', 'max']
+
+export const isThinkingLevel = (value: unknown): value is ThinkingLevel =>
+  typeof value === 'string' && (THINKING_LEVELS as string[]).includes(value)
 
 export interface ProviderInfo {
   id: ProviderId
@@ -86,6 +98,10 @@ export interface ChatSendRequest {
   modelId: string
   agentId: AgentId
   prompt: string
+  /** Extended-thinking level; "default" keeps the provider's own behavior. */
+  thinking?: ThinkingLevel
+  /** Absolute paths of files and images attached through the composer's + menu. */
+  attachments?: string[]
 }
 
 export interface ChatStreamChunk {

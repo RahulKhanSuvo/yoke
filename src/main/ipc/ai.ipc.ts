@@ -10,6 +10,7 @@ import { isThinkingLevel } from '../../shared/ai'
 import { getAllAppState } from '../services/app-state.service'
 import { toModelMessages } from '../ai/history'
 import { getApprovalGate } from '../ai/approval.service'
+import { getQuestionGate } from '../ai/question.service'
 import { isAgentId } from '../../shared/agents'
 import type {
   ApprovalResponse,
@@ -20,7 +21,8 @@ import type {
   ChatStreamPart,
   MessagePart,
   ProviderId,
-  ProviderStatus
+  ProviderStatus,
+  QuestionResponse
 } from '../../shared/ai'
 import {
   appendSessionMessage,
@@ -33,6 +35,8 @@ import {
 const activeRequests = new Map<string, AbortController>()
 /** The approval gate handling each in-flight chat request. */
 const requestGates = new Map<string, ReturnType<typeof getApprovalGate>>()
+/** The question gate handling each in-flight chat request. */
+const requestQuestions = new Map<string, ReturnType<typeof getQuestionGate>>()
 
 /** Largest attachment we will read into the prompt, in bytes. */
 const MAX_ATTACHMENT_BYTES = 2_000_000
@@ -94,6 +98,19 @@ function isApprovalResponse(value: unknown): value is ApprovalResponse {
     (candidate.decision === 'allow' ||
       candidate.decision === 'allow-session' ||
       candidate.decision === 'deny')
+  )
+}
+
+function isQuestionResponse(value: unknown): value is QuestionResponse {
+  if (typeof value !== 'object' || value === null) return false
+
+  const candidate = value as Record<string, unknown>
+
+  return (
+    typeof candidate.requestId === 'string' &&
+    typeof candidate.questionId === 'string' &&
+    Array.isArray(candidate.answers) &&
+    candidate.answers.every((answer: unknown) => typeof answer === 'string')
   )
 }
 
@@ -290,6 +307,18 @@ export function registerAIHandlers() {
       request: (command: string) => approvalGate.request(event.sender, requestId, command)
     }
 
+    const questionGate = getQuestionGate(sessionId)
+    requestQuestions.set(requestId, questionGate)
+    // Tools only see the question; this turn's sender and id stay bound here.
+    const question = {
+      ask: (
+        text: string,
+        options: Array<{ label: string; description?: string }>,
+        multiple: boolean,
+        header?: string
+      ) => questionGate.ask(event.sender, requestId, header, text, options, multiple)
+    }
+
     // Persist the user's turn before calling the provider, so the transcript survives errors.
     await appendSessionMessage(sessionId, 'user', { text: prompt.trim() })
 
@@ -313,11 +342,13 @@ export function registerAIHandlers() {
           modelId,
           agentId,
           directory: session.directory,
+          sessionId,
           messages: history,
           thinking,
           attachments,
           signal: controller.signal,
-          approval
+          approval,
+          question
         },
         {
           onText: (delta) => {
@@ -402,7 +433,9 @@ export function registerAIHandlers() {
       return { success: false }
     } finally {
       approvalGate.cancelAll()
+      questionGate.cancelAll()
       requestGates.delete(requestId)
+      requestQuestions.delete(requestId)
       activeRequests.delete(requestId)
     }
   })
@@ -412,6 +445,8 @@ export function registerAIHandlers() {
 
     // Deny any approval the agent is waiting on so the turn unwinds cleanly.
     requestGates.get(requestId)?.cancelAll()
+    // Expire any question the agent is waiting on for the same reason.
+    requestQuestions.get(requestId)?.cancelAll()
     activeRequests.get(requestId)?.abort()
   })
 
@@ -420,5 +455,12 @@ export function registerAIHandlers() {
     if (!isApprovalResponse(response)) throw new Error('Invalid approval response')
 
     requestGates.get(response.requestId)?.respond(response)
+  })
+
+  // The renderer answers a question dialog raised by the question tool.
+  ipcMain.handle('ai:question:respond', (_event, response: unknown) => {
+    if (!isQuestionResponse(response)) throw new Error('Invalid question response')
+
+    requestQuestions.get(response.requestId)?.respond(response)
   })
 }

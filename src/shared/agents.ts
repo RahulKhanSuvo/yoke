@@ -9,14 +9,26 @@ export const AGENTS: AgentInfo[] = [
     id: 'build',
     name: 'Build',
     description: 'Read and edit files, run commands',
-    tools: ['read', 'list', 'glob', 'grep', 'write', 'edit', 'bash'],
+    tools: [
+      'read',
+      'list',
+      'glob',
+      'grep',
+      'write',
+      'edit',
+      'bash',
+      'webfetch',
+      'todowrite',
+      'todoread',
+      'question'
+    ],
     steps: 12
   },
   {
     id: 'plan',
     name: 'Plan',
     description: 'Inspect the codebase without changing it',
-    tools: ['read', 'list', 'glob', 'grep'],
+    tools: ['read', 'list', 'glob', 'grep', 'webfetch', 'todoread', 'question'],
     steps: 8
   }
 ]

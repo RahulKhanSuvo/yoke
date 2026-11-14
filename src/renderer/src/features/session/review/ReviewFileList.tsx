@@ -3,7 +3,7 @@ import { HugeiconsIcon } from '@hugeicons/solid-js'
 import Search01Icon from '@hugeicons/core-free-icons/Search01Icon'
 import XIcon from '@hugeicons/core-free-icons/XIcon'
 import type { ReviewFileEntry } from '@shared/review'
-import { DiffStats, STATUS_LETTER, statusColor } from './review-status'
+import { DiffStats, FileExtBadge, STATUS_LETTER, statusColor } from './review-status'
 
 export interface ReviewFileListProps {
   /** Changed files, already filtered by the caller when a query is active. */
@@ -94,6 +94,7 @@ function FileRow(props: {
       >
         {STATUS_LETTER[props.file.status]}
       </span>
+      <FileExtBadge path={props.file.path} class="size-3.5 rounded-[2px] text-[7.5px]" />
       <span class="min-w-0 flex-1 truncate">
         <span class="text-foreground-muted/60">{directory()}</span>
         {name()}

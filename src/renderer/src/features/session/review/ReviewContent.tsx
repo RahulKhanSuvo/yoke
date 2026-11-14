@@ -17,7 +17,7 @@ import { ReviewDiffView, type ReviewDiffStyle } from './ReviewDiffView'
 import { parseUnifiedDiff } from './review-diff'
 import { ReviewClean, ReviewLoading, ReviewNotRepo } from './ReviewEmpty'
 import { ReviewFileList } from './ReviewFileList'
-import { DiffStats, STATUS_LETTER, statusColor } from './review-status'
+import { DiffStats, FileExtBadge, STATUS_LETTER, statusColor } from './review-status'
 import { getAppState, setAppState } from '@renderer/lib/app-state'
 
 /** A pane with no room for the 200px file list shows only the preview. */
@@ -274,47 +274,32 @@ function Preview(props: PreviewProps): JSX.Element {
           </IconButton>
         </Show>
 
-        <Show
-          when={props.file}
-          fallback={<span class="text-[12px] text-foreground-muted">No file selected</span>}
-        >
-          {(file) => (
-            <>
-              <span
-                class={`w-3 shrink-0 text-center text-[10px] font-semibold ${statusColor(file().status)}`}
-                aria-hidden="true"
-              >
-                {STATUS_LETTER[file().status]}
-              </span>
-              <span
-                class="min-w-0 flex-1 truncate font-mono text-[11.5px] text-foreground"
-                title={file().path}
-              >
-                {file().path}
-              </span>
-              <DiffStats additions={file().additions} deletions={file().deletions} />
-            </>
-          )}
+        <Show when={props.file}>
+          <span
+            class={`w-3 shrink-0 text-center text-[10px] font-semibold ${statusColor(props.file!.status)}`}
+            aria-hidden="true"
+          >
+            {STATUS_LETTER[props.file!.status]}
+          </span>
         </Show>
 
-        <IconButton
-          label="Previous file"
-          disabled={!props.canPrevious}
-          class="p-1 text-foreground-muted hover:bg-surface-mute hover:text-foreground disabled:opacity-30"
-          onClick={props.onPrevious}
-        >
-          <HugeiconsIcon icon={ArrowLeft01Icon} size={14} />
-        </IconButton>
-        <IconButton
-          label="Next file"
-          disabled={!props.canNext}
-          class="p-1 text-foreground-muted hover:bg-surface-mute hover:text-foreground disabled:opacity-30"
-          onClick={props.onNext}
-        >
-          <HugeiconsIcon icon={ArrowRight01Icon} size={14} />
-        </IconButton>
-
         <div class="ml-auto flex items-center gap-1.5">
+          <IconButton
+            label="Previous file"
+            disabled={!props.canPrevious}
+            class="p-1 text-foreground-muted hover:bg-surface-mute hover:text-foreground disabled:opacity-30"
+            onClick={props.onPrevious}
+          >
+            <HugeiconsIcon icon={ArrowLeft01Icon} size={14} />
+          </IconButton>
+          <IconButton
+            label="Next file"
+            disabled={!props.canNext}
+            class="p-1 text-foreground-muted hover:bg-surface-mute hover:text-foreground disabled:opacity-30"
+            onClick={props.onNext}
+          >
+            <HugeiconsIcon icon={ArrowRight01Icon} size={14} />
+          </IconButton>
           <SegmentedControl
             value={props.expandMode}
             onChange={props.onExpandMode}
@@ -332,6 +317,33 @@ function Preview(props: PreviewProps): JSX.Element {
             ]}
           />
         </div>
+      </div>
+
+      <div class="flex h-9 shrink-0 items-center gap-2 border-b border-line px-4">
+        <Show
+          when={props.file}
+          fallback={<span class="text-[12px] text-foreground-muted">No file selected</span>}
+        >
+          {(file) => (
+            <>
+              <FileExtBadge path={file().path} />
+              <span
+                class="shrink-0 text-[13px] font-semibold tracking-[-0.04px] text-foreground"
+                title={file().path}
+              >
+                {file().path.split('/').pop()}
+              </span>
+              <Show when={file().path.includes('/')}>
+                <span class="min-w-0 truncate text-[13px] tracking-[-0.04px] text-foreground-muted">
+                  {file().path.slice(0, file().path.lastIndexOf('/'))}
+                </span>
+              </Show>
+              <div class="ml-auto flex shrink-0 items-center">
+                <DiffStats additions={file().additions} deletions={file().deletions} />
+              </div>
+            </>
+          )}
+        </Show>
       </div>
 
       <div class="min-h-0 flex-1 overflow-auto">

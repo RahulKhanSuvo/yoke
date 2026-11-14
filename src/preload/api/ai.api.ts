@@ -3,6 +3,8 @@ import { ipcRenderer, type IpcRendererEvent } from 'electron'
 import type {
   ApprovalResponse,
   ApprovalRequest,
+  QuestionRequest,
+  QuestionResponse,
   ChatSendRequest,
   ChatStreamChunk,
   ChatStreamDone,
@@ -47,6 +49,14 @@ export const aiApi = {
   /** Subscribe to pending tool approval requests. */
   onApprovalRequest: (listener: (payload: ApprovalRequest) => void): (() => void) =>
     subscribe('ai:approval:request', listener),
+
+  /** Answers a question dialog raised by the agent's question tool. */
+  answerQuestion: (response: QuestionResponse): Promise<void> =>
+    ipcRenderer.invoke('ai:question:respond', response),
+
+  /** Subscribe to pending agent question dialogs. */
+  onQuestionRequest: (listener: (payload: QuestionRequest) => void): (() => void) =>
+    subscribe('ai:question:request', listener),
 
   onChunk: (listener: (payload: ChatStreamChunk) => void): (() => void) =>
     subscribe('ai:stream:chunk', listener),

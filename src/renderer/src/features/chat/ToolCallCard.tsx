@@ -200,7 +200,7 @@ function TodoCard(props: { part: Extract<MessagePart, { type: 'tool' }> }): JSX.
         <ul class="flex flex-col gap-1">
           <For each={todos()}>
             {(todo) => (
-              <li class="flex items-center gap-2 text-[12.5px] leading-[1.5]">
+              <li class="flex items-center gap-2 text-[12.5px] leading-normal">
                 <HugeiconsIcon
                   icon={
                     todo.status === 'completed'
@@ -434,7 +434,7 @@ function FileCard(props: {
           <FileExtBadge path={fileName()!} />
           <span class="min-w-0 truncate text-[12.5px] tracking-[-0.04px]" title={path()}>
             <span class="text-foreground-muted">{directory() ? `${directory()}/` : ''}</span>
-            <span class="font-[500] text-foreground-secondary">{fileName()}</span>
+            <span class="font-medium text-foreground-secondary">{fileName()}</span>
           </span>
         </Show>
 

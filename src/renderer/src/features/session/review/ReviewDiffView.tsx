@@ -1,7 +1,7 @@
 import { createEffect, createMemo, createSignal, For, Show, type JSX } from 'solid-js'
 import { HugeiconsIcon } from '@hugeicons/solid-js'
 import FileDiffIcon from '@hugeicons/core-free-icons/FileDiffIcon'
-import ChevronRightIcon from '@hugeicons/core-free-icons/ChevronRightIcon'
+import ArrowRight01Icon from '@hugeicons/core-free-icons/ArrowRight01Icon'
 import type { ReviewFileDiff } from '@shared/review'
 import {
   collapseContext,
@@ -25,8 +25,7 @@ export interface ReviewDiffViewProps {
 
 type DisplayRow = ReviewDiffLine | ReviewSplitRow | ReviewDiffGap
 
-const isGap = (row: DisplayRow): row is ReviewDiffGap =>
-  (row as ReviewDiffGap).type === 'gap'
+const isGap = (row: DisplayRow): row is ReviewDiffGap => (row as ReviewDiffGap).type === 'gap'
 
 /** The scrollable diff body under the preview toolbar. */
 export function ReviewDiffView(props: ReviewDiffViewProps): JSX.Element {
@@ -53,7 +52,10 @@ export function ReviewDiffView(props: ReviewDiffViewProps): JSX.Element {
             </div>
           }
         >
-          <Show when={props.style === 'split'} fallback={<UnifiedBody {...props} rows={displayRows()} />}>
+          <Show
+            when={props.style === 'split'}
+            fallback={<UnifiedBody {...props} rows={displayRows()} />}
+          >
             <SplitBody {...props} rows={displayRows()} />
           </Show>
         </Show>
@@ -95,17 +97,17 @@ function WithGaps(props: {
         isGap(row) ? (
           <Show
             when={!expanded().has(index())}
-            fallback={
-              <For each={row.hidden}>{(inner) => props.render(inner, index())}</For>
-            }
+            fallback={<For each={row.hidden}>{(inner) => props.render(inner, index())}</For>}
           >
             <button
               type="button"
-              class="flex w-full items-center gap-1.5 px-3 py-0.5 text-left text-[10.5px] text-foreground-muted transition-colors hover:bg-surface-mute hover:text-foreground"
+              class="flex w-full items-center gap-1 bg-diff-hunk-bg py-0.5 pl-3 text-left text-[11px] tracking-[-0.04px] text-foreground-muted transition-colors hover:text-foreground"
               onClick={() => expand(index())}
             >
-              <HugeiconsIcon icon={ChevronRightIcon} size={10} />
-              <span class="shrink-0">{row.count} unchanged lines</span>
+              <span class="sticky left-0 z-10 flex h-5 w-[88px] shrink-0 items-center justify-center bg-diff-hunk-gutter">
+                <HugeiconsIcon icon={ArrowRight01Icon} size={11} />
+              </span>
+              <span class="shrink-0">Expand {row.count} hidden lines</span>
             </button>
           </Show>
         ) : (
@@ -119,7 +121,7 @@ function WithGaps(props: {
 /** The single-column layout with horizontal scrolling, as before. */
 function UnifiedBody(props: BodyProps): JSX.Element {
   return (
-    <div class="min-w-max pb-8 font-mono text-[11.5px] leading-[18px] text-foreground">
+    <div class="min-w-max pb-8 font-mono text-[12px] leading-6 text-foreground">
       <WithGaps rows={props.rows} render={(row) => <DiffRow line={row as ReviewDiffLine} />} />
       <Show when={props.value?.truncated}>
         <div class="bg-surface-mute/60 px-3 py-1.5 text-[10.5px] text-foreground-muted">
@@ -133,7 +135,7 @@ function UnifiedBody(props: BodyProps): JSX.Element {
 /** The opencode-style side-by-side layout with paired old/new cells. */
 function SplitBody(props: BodyProps): JSX.Element {
   return (
-    <div class="pb-8 font-mono text-[11.5px] leading-[18px] text-foreground">
+    <div class="pb-8 font-mono text-[12px] leading-6 text-foreground">
       <WithGaps rows={props.rows} render={(row) => <SplitRow row={row as ReviewSplitRow} />} />
       <Show when={props.value?.truncated}>
         <div class="bg-surface-mute/60 px-3 py-1.5 text-[10.5px] text-foreground-muted">
@@ -148,9 +150,7 @@ function SplitRow(props: { row: ReviewSplitRow }): JSX.Element {
   const row = props.row
 
   if (row.type === 'hunk') {
-    return (
-      <div class="bg-surface-mute/70 px-3 py-0.5 text-[10.5px] text-foreground-muted">{row.text}</div>
-    )
+    return <HunkRow text={row.text} />
   }
 
   if (row.type === 'meta') {
@@ -175,30 +175,48 @@ function SplitCell(props: {
   side: 'old' | 'new'
 }): JSX.Element {
   const kind = () => props.cell?.kind
-  const background = () =>
-    kind() === 'del' ? 'bg-error/70' : kind() === 'add' ? 'bg-success/70' : 'bg-surface'
+  const added = () => kind() === 'add'
+  const removed = () => kind() === 'del'
 
   return (
     <div
-      class={`flex min-w-0 basis-1/2 ${props.side === 'old' ? 'border-r border-line/40' : ''} ${background()}`}
+      class="flex min-w-0 basis-1/2"
+      classList={{
+        'bg-diff-add-bg': added(),
+        'bg-diff-del-bg': removed(),
+        'bg-surface': !added() && !removed(),
+        'border-r border-line/40': props.side === 'old'
+      }}
     >
-      <span class="w-10 shrink-0 select-none border-r border-line/40 pr-1.5 text-right text-[10px] text-foreground-muted/60">
+      <span
+        class="sticky left-0 z-10 flex w-10 shrink-0 select-none items-center justify-end border-r border-line/40 pr-2 text-[11px] tabular-nums"
+        classList={{
+          'bg-diff-add-bg text-diff-add-num': added(),
+          'bg-diff-del-bg text-diff-del-num': removed(),
+          'bg-surface text-foreground-muted/50': !added() && !removed()
+        }}
+      >
+        <Show when={added() || removed()}>
+          <span
+            class="absolute left-0 top-0 h-full w-0.5"
+            classList={{ 'bg-diff-add-bar': added(), 'bg-diff-del-bar': removed() }}
+          />
+        </Show>
         {props.cell?.line ?? ''}
       </span>
-      <span
-        class="w-4 shrink-0 select-none text-center"
-        classList={{
-          'text-success-foreground': kind() === 'add',
-          'text-danger': kind() === 'del',
-          'text-foreground-muted/40': kind() === 'context' || !kind()
-        }}
-        aria-hidden="true"
-      >
-        {kind() === 'del' ? '−' : kind() === 'add' ? '+' : ' '}
-      </span>
-      <span class="min-w-0 flex-1 whitespace-pre-wrap break-all pr-2">
+      <span class="min-w-0 flex-1 whitespace-pre-wrap break-all pl-2 pr-2">
         {props.cell?.text || ' '}
       </span>
+    </div>
+  )
+}
+
+/** opencode's hunk separator: tinted content band with a sticky, stronger gutter cell. */
+function HunkRow(props: { text: string }): JSX.Element {
+  return (
+    <div class="flex bg-diff-hunk-bg text-[11px] tracking-[-0.04px] text-foreground-muted">
+      <span class="sticky left-0 z-10 h-6 w-[88px] shrink-0 bg-diff-hunk-gutter" />
+      <span class="flex h-6 items-center whitespace-pre pl-2">{props.text}</span>
     </div>
   )
 }
@@ -208,51 +226,57 @@ function DiffRow(props: { line: ReviewDiffLine }): JSX.Element {
   const line = props.line
 
   if (line.kind === 'hunk') {
-    return (
-      <div class="min-w-max bg-surface-mute/70 px-3 py-0.5 text-[10.5px] text-foreground-muted">
-        {line.text}
-      </div>
-    )
+    return <HunkRow text={line.text} />
   }
 
   if (line.kind === 'meta') {
     return (
       <div class="flex min-w-max bg-surface text-[10.5px] text-foreground-muted/70">
-        <span class="w-[81px] shrink-0" />
+        <span class="w-[88px] shrink-0" />
         <span class="whitespace-pre px-2 italic">{line.text}</span>
       </div>
     )
   }
 
-  const sign = line.kind === 'add' ? '+' : line.kind === 'del' ? '−' : ' '
+  const added = () => line.kind === 'add'
+  const removed = () => line.kind === 'del'
 
   return (
     <div
       class="flex min-w-max"
       classList={{
-        'bg-success/70': line.kind === 'add',
-        'bg-error/70': line.kind === 'del',
-        'bg-surface': line.kind === 'context'
+        'bg-diff-add-bg': added(),
+        'bg-diff-del-bg': removed(),
+        'bg-surface': !added() && !removed()
       }}
     >
-      <span class="sticky left-0 z-10 w-10 shrink-0 select-none border-r border-line/40 bg-inherit pr-1.5 text-right text-[10px] text-foreground-muted/60">
+      <span
+        class="sticky left-0 z-10 flex w-10 shrink-0 select-none items-center justify-end border-r border-line/40 pr-2 text-[11px] tabular-nums"
+        classList={{
+          'bg-diff-add-bg text-diff-add-num': added(),
+          'bg-diff-del-bg text-diff-del-num': removed(),
+          'bg-surface text-foreground-muted/50': !added() && !removed()
+        }}
+      >
+        <Show when={added() || removed()}>
+          <span
+            class="absolute left-0 top-0 h-full w-0.5"
+            classList={{ 'bg-diff-add-bar': added(), 'bg-diff-del-bar': removed() }}
+          />
+        </Show>
         {line.oldLine ?? ''}
       </span>
-      <span class="sticky left-10 z-10 w-10 shrink-0 select-none border-r border-line/40 bg-inherit pr-1.5 text-right text-[10px] text-foreground-muted/60">
+      <span
+        class="sticky left-10 z-10 flex w-10 shrink-0 select-none items-center justify-end border-r border-line/40 pr-2 text-[11px] tabular-nums"
+        classList={{
+          'bg-diff-add-bg text-diff-add-num': added(),
+          'bg-diff-del-bg text-diff-del-num': removed(),
+          'bg-surface text-foreground-muted/50': !added() && !removed()
+        }}
+      >
         {line.newLine ?? ''}
       </span>
-      <span
-        class="w-4 shrink-0 select-none text-center"
-        classList={{
-          'text-success-foreground': line.kind === 'add',
-          'text-danger': line.kind === 'del',
-          'text-foreground-muted/40': line.kind === 'context'
-        }}
-        aria-hidden="true"
-      >
-        {sign}
-      </span>
-      <span class="whitespace-pre pr-6">{line.text || ' '}</span>
+      <span class="whitespace-pre pl-2 pr-6">{line.text || ' '}</span>
     </div>
   )
 }

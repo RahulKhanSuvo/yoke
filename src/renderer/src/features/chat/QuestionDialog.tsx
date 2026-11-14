@@ -120,7 +120,7 @@ export function QuestionDialog(props: QuestionDialogProps): JSX.Element {
           {/* Question text and the key hint. */}
           <div class="px-3 pb-1.5">
             <p
-              class="text-[13px] leading-[1.5] font-[530] text-foreground"
+              class="text-[13px] leading-normal font-[530] text-foreground"
               classList={{
                 'line-clamp-3': minimized()
               }}
